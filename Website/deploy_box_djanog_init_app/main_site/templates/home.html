@@ -4,14 +4,72 @@
 <html lang="en">
     {% tailwind_css %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello World</title>
-    <link href="{% static 'css/styles.css' %}" rel="stylesheet">
-</head>
-<body class="bg-blue-100 text-center py-20">
-    <h1 class="text-5xl font-bold text-blue-600">Hello, World!</h1>
-    <p class="mt-4 text-lg text-gray-700">Welcome to my Django website with Tailwind CSS!</p>
-</body>
+<!-- forked from: https://codepen.io/cuonoj/pen/JjPmMaB -->
+
+<section id= "hero" class="relative h-screen flex flex-col items-center justify-center text-center text-white ">
+    <div class="video-docker absolute top-0 left-0 w-full h-full overflow-hidden">
+        <video class="min-w-full min-h-full absolute object-cover"
+            src="https://videos.pexels.com/video-files/2943126/2943126-uhd_2560_1440_24fps.mp4"
+            type="video/mp4" autoplay muted loop></video>
+    </div>
+    <div class="video-content space-y-2 z-10">
+        <h1 class="font-light text-6xl">Ship your Projects Faster</h1>
+        <h3 class="font-light text-3xl">with Deploy Box</h3>
+    </div>
+</section>
+<section class="m-10">
+    <h1 class=" text-6xl text-center mb-10">Current Containers</h1>
+    <div
+      class="p-10 rounded-l-xl border border-blue-gray-100 bg-[url('/image/gradient-bg-1.png')] rounded-xl bg-no-repeat lg:bg-contain bg-cover bg-right"
+    >
+      <p
+        class="block antialiased font-sans text-sm font-light leading-normal text-blue-gray-900 font-bold mb-2"
+      >
+        Most Popuar Stack
+      </p>
+      <h3
+        class="block antialiased tracking-normal font-sans text-3xl font-semibold leading-snug text-blue-gray-900"
+      >
+        MERN
+      </h3>
+      <p
+        class="block antialiased font-sans text-base font-light leading-relaxed text-inherit mt-2 mb-6 !text-base font-normal text-gray-500"
+      >
+        MERN stands for MondoDB, Express.js, React, and Node.js. It is a modern stack that uses a combination of modern frameworks and a no sql database to ensure you spin up your webapp as quicky as possible.
+      </p>
+      <button
+        class="align-middle select-none font-sans font-bold text-center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 px-6 rounded-lg border border-gray-900 text-gray-900 hover:opacity-75 focus:ring focus:ring-gray-300 active:opacity-[0.85] flex-shrink-0"
+        type="button"
+        data-ripple-dark="true"
+      >
+        Downoad Container
+      </button>
+      <button
+      class="align-middle select-none font-sans font-bold text-center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 px-6 rounded-lg border border-gray-900 text-gray-900 hover:opacity-75 focus:ring focus:ring-gray-300 active:opacity-[0.85] flex-shrink-0"
+      type="button"
+      data-ripple-dark="true"
+    >
+      Find MERN Devs
+    </button>
+    </div>
+  </section>
+
+<style>
+    .video-docker video {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .video-docker::after {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1;
+    }
+</style>
 </html>
