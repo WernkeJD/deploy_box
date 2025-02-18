@@ -1,23 +1,27 @@
-require("dotenv").config();
 const express = require("express");
-const mongoose = require("mongoose");
 const cors = require("cors");
+const dotenv = require("dotenv");
+const itemRoutes = require("./routes/items");
+const mongoose = require('mongoose');
+
+dotenv.config();
+
+mongoose.connect(process.env.MONGO_URI )
+    .then(() => console.log('Connected to MongoDB'))
+    .catch((err) => console.error('Error connecting to MongoDB:', err));
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
+app.use("/", (req, res) => {
+  res.json({ message: "Hello world" });
 });
 
-const db = mongoose.connection;
-db.on("error", console.error.bind(console, "Connection error:"));
-db.once("open", () => console.log("MongoDB Connected"));
+app.use("/api/items", itemRoutes);
 
-app.get("/", (req, res) => {
-  res.send("MERN Stack Backend is Running!");
+app.use((req, res) => {
+    res.status(404).send({ message: "Route not found" });
 });
 
 const PORT = process.env.PORT || 5000;
