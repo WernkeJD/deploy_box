@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+{% load static tailwind_tags %}
+
+<html lang="en">
+    {% tailwind_css %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello World</title>
+    <link href="{% static 'css/styles.css' %}" rel="stylesheet">
+</head>
+<body class="bg-blue-100 text-center py-20">
+    <h1 class="text-5xl font-bold text-blue-600">Hello, World!</h1>
+    <p class="mt-4 text-lg text-gray-700">Welcome to my Django website with Tailwind CSS!</p>
+</body>
+</html>
