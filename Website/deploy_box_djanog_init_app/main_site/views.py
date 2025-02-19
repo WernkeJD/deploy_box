@@ -6,7 +6,13 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 
-# Create your views here.
+#Basic Route Return Functions
 
 def home(request):
     return render(request, "home.html", {})
+
+def stacks(request):
+    return render(request, "stacks.html", {})
+
+def maintenance(request):
+    return render(request, "maintenance.html", {})
