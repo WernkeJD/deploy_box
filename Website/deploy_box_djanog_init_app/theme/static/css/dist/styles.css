@@ -851,6 +851,10 @@ select {
   margin-right: auto;
 }
 
+.-mt-16 {
+  margin-top: -4rem;
+}
+
 .mb-10 {
   margin-bottom: 2.5rem;
 }
@@ -885,26 +889,6 @@ select {
 
 .mt-8 {
   margin-top: 2rem;
-}
-
-.-mt-10 {
-  margin-top: -2.5rem;
-}
-
-.-mt-32 {
-  margin-top: -8rem;
-}
-
-.-mt-16 {
-  margin-top: -4rem;
-}
-
-.-mt-8 {
-  margin-top: -2rem;
-}
-
-.mt-10 {
-  margin-top: 2.5rem;
 }
 
 .block {
@@ -955,14 +939,6 @@ select {
   height: 100vh;
 }
 
-.h-32 {
-  height: 8rem;
-}
-
-.h-px {
-  height: 1px;
-}
-
 .min-h-full {
   min-height: 100%;
 }
@@ -999,14 +975,6 @@ select {
   width: 100vw;
 }
 
-.w-32 {
-  width: 8rem;
-}
-
-.w-1\/2 {
-  width: 50%;
-}
-
 .min-w-full {
   min-width: 100%;
 }
@@ -1017,10 +985,6 @@ select {
 
 .max-w-screen-xl {
   max-width: 1280px;
-}
-
-.max-w-2xl {
-  max-width: 42rem;
 }
 
 .flex-shrink-0 {
@@ -1125,6 +1089,10 @@ select {
   border-radius: 1rem;
 }
 
+.rounded-full {
+  border-radius: 9999px;
+}
+
 .rounded-lg {
   border-radius: 0.5rem;
 }
@@ -1135,14 +1103,6 @@ select {
 
 .rounded-xl {
   border-radius: 0.75rem;
-}
-
-.rounded-full {
-  border-radius: 9999px;
-}
-
-.rounded-md {
-  border-radius: 0.375rem;
 }
 
 .rounded-l-xl {
@@ -1173,11 +1133,6 @@ select {
   border-color: rgb(17 24 39 / var(--tw-border-opacity, 1));
 }
 
-.border-gray-300 {
-  --tw-border-opacity: 1;
-  border-color: rgb(209 213 219 / var(--tw-border-opacity, 1));
-}
-
 .border-zinc-950 {
   --tw-border-opacity: 1;
   border-color: rgb(9 9 11 / var(--tw-border-opacity, 1));
@@ -1191,11 +1146,6 @@ select {
 .bg-gray-50 {
   --tw-bg-opacity: 1;
   background-color: rgb(249 250 251 / var(--tw-bg-opacity, 1));
-}
-
-.bg-red-600 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(220 38 38 / var(--tw-bg-opacity, 1));
 }
 
 .bg-transparent {
@@ -1431,11 +1381,6 @@ select {
   color: rgb(52 211 153 / var(--tw-text-opacity, 1));
 }
 
-.text-gray-100 {
-  --tw-text-opacity: 1;
-  color: rgb(243 244 246 / var(--tw-text-opacity, 1));
-}
-
 .text-gray-400 {
   --tw-text-opacity: 1;
   color: rgb(156 163 175 / var(--tw-text-opacity, 1));
@@ -1664,11 +1609,6 @@ select {
     color: rgb(52 211 153 / var(--tw-text-opacity, 1));
   }
 
-  .md\:text-green-300 {
-    --tw-text-opacity: 1;
-    color: rgb(134 239 172 / var(--tw-text-opacity, 1));
-  }
-
   .md\:hover\:bg-transparent:hover {
     background-color: transparent;
   }
@@ -1676,11 +1616,6 @@ select {
   .md\:hover\:text-emerald-400:hover {
     --tw-text-opacity: 1;
     color: rgb(52 211 153 / var(--tw-text-opacity, 1));
-  }
-
-  .md\:hover\:text-green-300:hover {
-    --tw-text-opacity: 1;
-    color: rgb(134 239 172 / var(--tw-text-opacity, 1));
   }
 }
 
