@@ -1,24 +1,26 @@
 const express = require("express");
 const cors = require("cors");
-const dotenv = require("dotenv");
 const itemRoutes = require("./routes/items");
-const mongoose = require('mongoose');
-
-dotenv.config();
-
-mongoose.connect(process.env.MONGO_URI )
-    .then(() => console.log('Connected to MongoDB'))
-    .catch((err) => console.error('Error connecting to MongoDB:', err));
+const { DB_Connect } = require('./database');
 
 const app = express();
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
+
+DB_Connect()
+  .then(() => console.log("MongoDB Connected"))
+  .catch((err) => console.error("MongoDB Connection Error:", err));
+
+app.use("/api/items", itemRoutes);
 
 app.use("/", (req, res) => {
   res.json({ message: "Hello world" });
 });
 
-app.use("/api/items", itemRoutes);
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send({ message: err.message });
+});
 
 app.use((req, res) => {
     res.status(404).send({ message: "Route not found" });

@@ -1,16 +1,19 @@
-const { MongoClient } = require("mongodb");
+const mongoose = require("mongoose");
 require("dotenv").config();
 
-const client = new MongoClient(process.env.MONGO_URI);
+const uri = process.env.MONGO_URI;
 
-async function connectDB() {
-    try {
-        await client.connect();
-        console.log("Connected to MongoDB");
-        return client.db("YourDatabaseName").collection("items");
-    } catch (error) {
-        console.error("MongoDB connection error:", error);
-    }
+const clientOptions = {
+  serverApi: { version: "1", strict: true, deprecationErrors: true },
+};
+
+function DB_Connect() {
+  return mongoose.connect(uri, clientOptions);
 }
 
-module.exports = connectDB;
+function DB_disconnect() {
+  return mongoose.disconnect();
+}
+
+exports.DB_Connect = DB_Connect;
+exports.DB_disconnect = DB_disconnect;
