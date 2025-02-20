@@ -1,9 +1,9 @@
-const Item = require("../models/itemModel"); // Import the Mongoose model
+const Item = require("../models/itemModel");
 
 // Get all items
 async function getItems(req, res) {
     try {
-        const items = await Item.find(); // Use Mongoose's find method to get all items
+        const items = await Item.find();
         res.json(items);
     } catch (error) {
         res.status(500).json({ message: "Error fetching items", error });
@@ -13,11 +13,30 @@ async function getItems(req, res) {
 // Add a new item
 async function addItem(req, res) {
     try {
-        const newItem = new Item(req.body); // Create a new item using the Mongoose model
-        const result = await newItem.save(); // Save the item to the database
+        if (typeof req.body !== "object") {
+            return res.status(400).json({ message: "Request body must be an object" });
+        }
+
+        if (Array.isArray(req.body)) {
+            return addBulkItems(req, res);
+        }
+
+        const newItem = new Item(req.body);
+        const result = await newItem.save();
         res.status(201).json({ insertedId: result._id });
     } catch (error) {
         res.status(400).json({ message: "Error adding item", error });
+    }
+}
+
+// Add bulk items
+async function addBulkItems(req, res) {
+    try {
+        const items = req.body;
+        const result = await Item.insertMany(items);
+        res.status(201).json({ insertedCount: result.length });
+    } catch (error) {
+        res.status(400).json({ message: "Error adding items", error });
     }
 }
 
@@ -28,7 +47,7 @@ async function updateItem(req, res) {
         const updatedItem = await Item.findByIdAndUpdate(
             id,
             req.body,
-            { new: true } // Return the updated document
+            { new: true }
         );
         if (!updatedItem) {
             return res.status(404).json({ message: "Item not found" });
