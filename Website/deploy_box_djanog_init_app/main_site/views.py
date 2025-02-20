@@ -14,5 +14,8 @@ def home(request):
 def stacks(request):
     return render(request, "stacks.html", {})
 
+def pricing(request):
+    return render(request, "pricing.html", {})
+
 def maintenance(request):
     return render(request, "maintenance.html", {})
