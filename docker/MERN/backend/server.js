@@ -4,7 +4,13 @@ const itemRoutes = require("./routes/items");
 const { DB_Connect } = require('./database');
 
 const app = express();
-app.use(cors());
+const corsOptions = {
+  origin: "*", // Allow all origins (for testing)
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  allowedHeaders: "Content-Type,Authorization",
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 DB_Connect()

@@ -1,13 +1,21 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
+
 function App() {
   const [message, setMessage] = useState("Backend is not connected");
   const [items, setItems] = useState([]);
 
   useEffect(() => {
+    const baseUrl = window.env.REACT_APP_BACKEND_URL?.endsWith("/")
+      ? window.env.REACT_APP_BACKEND_URL
+      : `${window.env.REACT_APP_BACKEND_URL}/`;
+
+    const url = `${baseUrl}api/items`;
+    console.log(url);
+
     axios
-      .get("https://mern-backend-1038595011070.us-central1.run.app/api/items")
+      .get(url)
       .then((res) => {
         if (res.status === 200) {
           setMessage("Backend is connected");
@@ -15,7 +23,7 @@ function App() {
           console.log(res.data);
         }
       })
-      .catch((error) => console.error(error))
+      .catch((error) => console.error(error));
   }, []);
 
   return (
