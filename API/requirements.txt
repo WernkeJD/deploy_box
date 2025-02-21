@@ -1,0 +1,6 @@
+flask
+python-dotenv
+requests
+selenium
+webdriver-manager
+python-terraform
