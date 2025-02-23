@@ -375,14 +375,9 @@ def deploy_mongodb(projectName: str):
             "username": "admin"
         })
 
-        
-            
-
-
     except KeyboardInterrupt:
         driver.quit()
-    
 
 if __name__ == '__main__':
-    print(deploy_mongodb("testingProject"))
+    print(deploy_mongodb())
     
