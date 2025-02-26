@@ -1,8 +1,7 @@
 /venv
-/deploy_box_djanog_init_app/main_site/migrations
+# /deploy_box_djanog_init_app/main_site/migrations
 db.sqlite3
 package.json
 package-lock.json
 node_modules
 .env
-C:\Users\jacob\OneDrive\Documents\deploy_box\Website\deploy_box_djanog_init_app\db.json
