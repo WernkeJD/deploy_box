@@ -1,57 +1,65 @@
+
+
+
 <!DOCTYPE html>
 {% load static tailwind_tags %}
+{% tailwind_css %}
 
-<form method="POST" class="space-y-6" action="{% url 'main_site:signup' %}">
-    {% csrf_token %}
-    <div>
-        <label for="username" class="block text-sm font-medium text-gray-700">
-            Username (Email)
-        </label>
-        <div class="mt-1">
-            {{ form.username }}
+<section class="flex flex-col items-center justify-center pt-6 h-screen">
+    <div class="text-center w-full bg-white rounded-2xl ring ring-zinc-200 shadow-lg shadow-zinc-400 dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
+        <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
+            <h1 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">Create an account</h1>
+
+            <form method="POST" class="space-y-6" action="{% url 'main_site:signup' %}">
+                {% csrf_token %}
+                <div>
+                    <label for="username" class="block text-sm font-medium text-zinc-950">Username (Email)</label>
+                    <div class="mt-1">
+                        {{ form.username }}
+                    </div>
+                </div>
+
+                <div>
+                    <label for="name" class="block text-sm font-medium text-zinc-950">Full Name</label>
+                    <div class="mt-1">
+                        {{ form.name }}
+                    </div>
+                </div>
+
+                <div>
+                    <label for="birthdate" class="block text-sm font-medium text-zinc-950">Birthdate</label>
+                    <div class="mt-1">
+                        {{ form.birthdate }}
+                    </div>
+                </div>
+
+                <div>
+                    <label for="password1" class="block text-sm font-medium text-zinc-950">Password</label>
+                    <div class="mt-1">
+                        {{ form.password1 }}
+                    </div>
+                </div>
+
+                <div>
+                    <label for="password2" class="block text-sm font-medium text-zinc-950">Confirm Password</label>
+                    <div class="mt-1">
+                        {{ form.password2 }}
+                    </div>
+                </div>
+
+                <div>
+                    <button type="submit" class="w-full text-white bg-emerald-400 hover:bg-emerald-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                        Create an account
+                    </button>
+                </div>
+            </form>
+
+            <p class="text-sm font-light text-gray-500 dark:text-gray-400">
+                Already have an account? 
+                <a class="font-bold text-emerald-400 hover:underline dark:text-blue-500" href="/accounts/login">Sign in here</a>
+            </p>
         </div>
     </div>
+</section>
 
-    <div>
-        <label for="name" class="block text-sm font-medium text-gray-700">
-            Full Name
-        </label>
-        <div class="mt-1">
-            {{ form.name }}
-        </div>
-    </div>
-
-    <div>
-        <label for="birthdate" class="block text-sm font-medium text-gray-700">
-            Birthdate
-        </label>
-        <div class="mt-1">
-            {{ form.birthdate }}
-        </div>
-    </div>
-
-    <div>
-        <label for="password1" class="block text-sm font-medium text-gray-700">
-            Password
-        </label>
-        <div class="mt-1">
-            {{ form.password1 }}
-        </div>
-    </div>
-
-    <div>
-        <label for="password2" class="block text-sm font-medium text-gray-700">
-            Confirm Password
-        </label>
-        <div class="mt-1">
-            {{ form.password2 }}
-        </div>
-    </div>
-
-    <div>
-        <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-            Sign Up
-        </button>
-    </div>
-</form>
 
