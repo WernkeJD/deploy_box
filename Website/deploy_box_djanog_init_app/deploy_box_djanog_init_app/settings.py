@@ -58,6 +58,11 @@ INTERNAL_IPS = [
 NPM_BIN_PATH = "C:/Program Files/nodejs/npm.cmd"
 #end of tailwind esssentials may need to change the last one for prod
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://deploy-box.onrender.com',
+]
+
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
