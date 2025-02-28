@@ -5,7 +5,7 @@ import os
 import requests
 import getpass
 
-USER_VERIFICATION_URL = 'https://deploy-box.onrender.com/verify_user_credentials'
+USER_VERIFICATION_URL = 'https://deploy-box.onrender.com/verify_user_credentials/'
 
 class deployCLI(cmd.Cmd):
     prompt = 'Deploy_Box >> '
@@ -13,7 +13,7 @@ class deployCLI(cmd.Cmd):
 
     def __init__(self):
         super().__init__()
-        self.cli_login('')
+        self.cli_login()
         self.do_check_docker('')  # Automatically check for Docker when the CLI starts
 
         purchased_stack = input("which stack did you purchase? (MERN/MEAN): ")
@@ -31,18 +31,27 @@ class deployCLI(cmd.Cmd):
         # Send a POST request to your Django API
         response = requests.post(USER_VERIFICATION_URL, data={'username': username, 'password': password})
 
+        print(f"Response Status Code: {response.status_code}")  # Print status code
+
         if response.status_code == 200:
             print("Login successful!")
             return True
         else:
-            print(f"Error: {response.json()['error']}")
+            # Check if the response body is not empty before trying to parse JSON
+            if response.text:
+                try:
+                    print(f"Error: {response.json()['error']}")
+                except ValueError as e:
+                    print(f"Error parsing JSON: {e}")
+            else:
+                print("Error: Empty response from server")
             return False
 
     def cli_login(self):
         username = input("Enter your username: ")
         password = getpass.getpass("Enter your password: ")  # Hides password input
 
-        if verify_user_credentials(username, password):
+        if self.verify_user_credentials(username, password):
             print("You are logged in!")
         else:
             print("Login failed. Please try again.")
