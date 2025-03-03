@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.forms import UserCreationForm
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.decorators import login_required
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import logout, authenticate
@@ -55,9 +56,13 @@ def verify_user_credentials(request):
     user = authenticate(username=username, password=password)
 
     if user is not None:
-        return Response({'message': 'Login successful'}, status=status.HTTP_200_OK)
+        # Generate JWT token
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        return Response({'message': 'Login successful', 'access_token': access_token}, status=status.HTTP_200_OK)
     else:
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
     
 #containers endpoints
 @api_view(['PATCH'])
