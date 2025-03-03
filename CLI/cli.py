@@ -6,6 +6,8 @@ import requests
 import getpass
 
 USER_VERIFICATION_URL = 'https://deploy-box.onrender.com/verify_user_credentials/'
+USER_CONTAINER_ACCESS_URL = 'https://deploy-box.onrender.com/get_container_access/'
+
 
 class deployCLI(cmd.Cmd):
     prompt = 'Deploy_Box >> '
@@ -14,6 +16,7 @@ class deployCLI(cmd.Cmd):
     def __init__(self):
         super().__init__()
         self.cli_login()
+        self.get_user_container_access()
         self.do_check_docker('')  # Automatically check for Docker when the CLI starts
 
         purchased_stack = input("which stack did you purchase? (MERN/MEAN): ")
@@ -55,6 +58,16 @@ class deployCLI(cmd.Cmd):
             print("You are logged in!")
         else:
             print("Login failed. Please try again.")
+
+    def get_user_container_access(access_token):
+        headers = {'Authorization': f'Bearer {access_token}'}
+        response = requests.get(USER_CONTAINER_ACCESS_URL, headers=headers)
+
+        if response.status_code == 200:
+            access_data = response.json()
+            print("Containers you have access to:", access_data)
+        else:
+            print("Error retrieving container access:", response.json())
 
 
 ############################################################start of docker stuff#################################################################################
