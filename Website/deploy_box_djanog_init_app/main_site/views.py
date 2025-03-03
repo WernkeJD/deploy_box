@@ -89,20 +89,15 @@ def update_container_access(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_container_access(request):
-    # Optionally, authenticate the user
     if not request.user.is_authenticated:
         return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
 
-    # Get the user's profile
-    user = request.user  # Using the logged-in user from the request
+    # Access the user’s profile
     try:
-        profile = UserProfile.objects.get(user=user)
+        profile = UserProfile.objects.get(user=request.user)
     except UserProfile.DoesNotExist:
         return Response({'error': 'User profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Retrieve container access information
-    access_data = {
-        'has_mern': profile.has_mern
-    }
-
+    # Return the container access information
+    access_data = {'has_mern': profile.has_mern}
     return Response(access_data, status=status.HTTP_200_OK)

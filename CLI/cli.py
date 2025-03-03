@@ -31,26 +31,27 @@ class deployCLI(cmd.Cmd):
             print("sorry stack not available yet!")
 
     def verify_user_credentials(self, username, password):
-        # Send a POST request to your Django API
         response = requests.post(USER_VERIFICATION_URL, data={'username': username, 'password': password})
 
-        print(f"Response Status Code: {response.status_code}")  # Print status code
+        print(f"Response Status Code: {response.status_code}")
+        print(f"Response Content: {response.text}")  # Print the raw response text
 
         if response.status_code == 200:
             print("Login successful!")
-            # Extract the access token from the response and return it
-            access_token = response.json().get('access_token')  # Assuming 'access_token' is in the response
-            return access_token
-        else:
-            # Check if the response body is not empty before trying to parse JSON
-            if response.text:
-                try:
-                    print(f"Error: {response.json()['error']}")
-                except ValueError as e:
-                    print(f"Error parsing JSON: {e}")
+            access_token = response.json().get('access_token')
+            if access_token:
+                return access_token  # Return the access token if present
             else:
-                print("Error: Empty response from server")
-            return None
+                print("Error: Access token not found in response.")
+        else:
+            # Print the full response content for debugging if 'error' is not found
+            try:
+                print(f"Error: {response.json()}")  # Show the entire error message returned from the server
+            except ValueError:
+                print("Error parsing JSON, response might not be JSON format")
+        
+        return None  # Return None if no token or error message is found
+
         
     def get_access_token(self, username, password):
         # Send a POST request to the Django API for user authentication
@@ -88,27 +89,29 @@ class deployCLI(cmd.Cmd):
         username = input("Enter your username: ")
         password = getpass.getpass("Enter your password: ")  # Hides password input
 
-        if self.verify_user_credentials(username, password):
-            print("You are logged in!")
-            # Save the access token returned from the API
-            self.access_token = self.get_access_token()  # Store the token
+        access_token = self.verify_user_credentials(username, password)  # Get the access token directly
+
+        if access_token:
+            print("Login successful!")
+            self.access_token = access_token  # Store the token for future requests
             print("Access token stored for subsequent requests.")
         else:
             print("Login failed. Please try again.")
-
+            
     def get_user_container_access(self):
-        # Use the stored access token for the request
-        if hasattr(self, 'access_token'):  # Check if access token is available
+        # Check if the access token is available
+        if hasattr(self, 'access_token'):  # Ensure the access token exists
             access_token = self.access_token
-            headers = {'Authorization': f'Bearer {access_token}'}
+            headers = {'Authorization': f'Bearer {access_token}'}  # Include the token in the header
 
+            # Send GET request to the protected endpoint
             response = requests.get(USER_CONTAINER_ACCESS_URL, headers=headers)
 
             if response.status_code == 200:
                 access_data = response.json()
                 print("Containers you have access to:", access_data)
             else:
-                print("Error retrieving container access:", response.json())
+                print(f"Error retrieving container access: {response.status_code} - {response.text}")
         else:
             print("Error: No access token found. Please login first.")
 
