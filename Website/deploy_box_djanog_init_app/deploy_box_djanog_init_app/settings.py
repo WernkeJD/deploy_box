@@ -41,12 +41,23 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_browser_reload',
+    'rest_framework',
+    'rest_framework_simplejwt',
 
     'main_site',
 
     'tailwind',
     'theme',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Use JWT for authentication
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',  # Ensure authentication is required
+    ],
+}
 
 #essential for taillwind
 TAILWIND_APP_NAME = 'theme'
