@@ -10,6 +10,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import logout, authenticate
 from .forms import CustomUserCreationForm
 from .models import UserProfile
+from django.contrib.auth.models import User
+
 
 #Basic Route Return Functions
 
@@ -66,7 +68,9 @@ def verify_user_credentials(request):
 def get_container_access(request):
     username = request.data.get ('username')
 
-    user = UserProfile.objects.get(username=username)
+    auth_user = User.objects.get(username=username)
+    user_id = auth_user.id
+    user = UserProfile.objects.get(user_id=user_id)
 
     # Fetch the user's profile
     profile = UserProfile.objects.get(user=user)
