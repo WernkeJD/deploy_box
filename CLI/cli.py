@@ -15,12 +15,13 @@ class deployCLI(cmd.Cmd):
 
     def __init__(self):
         super().__init__()
+        self.username = None
         self.cli_login()
         self.get_user_container_access()
         self.do_check_docker('')  # Automatically check for Docker when the CLI starts
 
         purchased_stack = input("which stack did you purchase? (MERN/MEAN): ")
-        if purchased_stack == "mern" or purchased_stack == "MERN":
+        if purchased_stack == "mern" or purchased_stack == "MERN" or purchased_stack == "Mern":
             self.download_mern_front_image('')
             self.download_mern_back_image('')
             self.download_mern_db_image('')
@@ -89,12 +90,10 @@ class deployCLI(cmd.Cmd):
         username = input("Enter your username: ")
         password = getpass.getpass("Enter your password: ")  # Hides password input
 
-        access_token = self.verify_user_credentials(username, password)  # Get the access token directly
-
-        if access_token:
-            print("Login successful!")
-            self.access_token = access_token  # Store the token for future requests
-            print("Access token stored for subsequent requests.")
+        if self.verify_user_credentials(username, password):
+            self.username = username
+            print(self.usernme)
+            print("You are logged in!")
         else:
             print("Login failed. Please try again.")
             
