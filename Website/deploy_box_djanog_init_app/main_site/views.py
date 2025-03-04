@@ -67,7 +67,7 @@ def verify_user_credentials(request):
 
 #container views
 @api_view(['GET'])
-def get_users_containers(request):
+def get_container_access(request):
     username = request.data.get ('username')
 
     user = UserProfile.objects.get(username=username)

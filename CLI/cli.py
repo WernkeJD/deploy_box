@@ -32,58 +32,25 @@ class deployCLI(cmd.Cmd):
             print("sorry stack not available yet!")
 
     def verify_user_credentials(self, username, password):
+        # Send a POST request to your Django API
         response = requests.post(USER_VERIFICATION_URL, data={'username': username, 'password': password})
 
-        print(f"Response Status Code: {response.status_code}")
-        print(f"Response Content: {response.text}")  # Print the raw response text
+        print(f"Response Status Code: {response.status_code}")  # Print status code
 
         if response.status_code == 200:
             print("Login successful!")
-            access_token = response.json().get('access_token')
-            if access_token:
-                return access_token  # Return the access token if present
-            else:
-                print("Error: Access token not found in response.")
+            return True
         else:
-            # Print the full response content for debugging if 'error' is not found
-            try:
-                print(f"Error: {response.json()}")  # Show the entire error message returned from the server
-            except ValueError:
-                print("Error parsing JSON, response might not be JSON format")
-        
-        return None  # Return None if no token or error message is found
-
-        
-    def get_access_token(self, username, password):
-        # Send a POST request to the Django API for user authentication
-        response = requests.post(USER_VERIFICATION_URL, data={'username': username, 'password': password})
-
-        # Print status code to check response
-        print(f"Response Status Code: {response.status_code}")
-
-        # If the login is successful, extract the access token from the response
-        if response.status_code == 200:
-            print("Login successful!")
-            try:
-                # Extract the JWT access token from the JSON response
-                access_token = response.json().get('access_token')
-                if access_token:
-                    return access_token  # Return the access token
-                else:
-                    print("Error: Access token not found in response.")
-            except ValueError as e:
-                print(f"Error parsing JSON: {e}")
-        else:
-            # Handle errors or failed login attempts
+            print(f"Error: {response.json()['error']}")
+            # Check if the response body is not empty before trying to parse JSON
             if response.text:
                 try:
-                    print(f"Error: {response.json().get('error')}")
+                    print(f"Error: {response.json()['error']}")
                 except ValueError as e:
                     print(f"Error parsing JSON: {e}")
             else:
                 print("Error: Empty response from server")
-        
-        return None  # Return None if the token wasn't found or login failed
+            return False
 
 
     def cli_login(self):
@@ -96,23 +63,6 @@ class deployCLI(cmd.Cmd):
             print("You are logged in!")
         else:
             print("Login failed. Please try again.")
-            
-    def get_user_container_access(self):
-        # Check if the access token is available
-        if hasattr(self, 'access_token'):  # Ensure the access token exists
-            access_token = self.access_token
-            headers = {'Authorization': f'Bearer {access_token}'}  # Include the token in the header
-
-            # Send GET request to the protected endpoint
-            response = requests.get(USER_CONTAINER_ACCESS_URL, headers=headers)
-
-            if response.status_code == 200:
-                access_data = response.json()
-                print("Containers you have access to:", access_data)
-            else:
-                print(f"Error retrieving container access: {response.status_code} - {response.text}")
-        else:
-            print("Error: No access token found. Please login first.")
 
 
 
