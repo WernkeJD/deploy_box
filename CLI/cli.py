@@ -193,7 +193,18 @@ class deployCLI(cmd.Cmd):
         try:
             subprocess.run(['docker-compose', 'up'], check=True)
         except subprocess.CalledProcessError as e:
-            print(f"Error running docker-compose: {e}")        
+            print(f"Error running docker-compose: {e}")   
+
+
+    def do_update_envs(self, line):  
+        y_or_n = input("would you like to work localy (yes/no)? ")
+
+        if y_or_n == "yes" or y_or_n == "YES" or y_or_n == "Yes":
+            os.environ['REACT_APP_BACKEND_URL'] = "http://localhost:5000"
+            os.environ['MONGO_URI'] = "mongodb://localhost:27017/mydatabase"
+        else:
+            pass
+            
 
 
 ########################################end of image stuff###################################################################################################################
