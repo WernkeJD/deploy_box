@@ -50,15 +50,6 @@ INSTALLED_APPS = [
     'theme',
 ]
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Use JWT for authentication
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',  # Ensure authentication is required
-    ],
-}
-
 #essential for taillwind
 TAILWIND_APP_NAME = 'theme'
 
