@@ -185,121 +185,44 @@ class deployCLI(cmd.Cmd):
 #######################################end of docker sutff##################################################################################################################
 
 ####################################start of image exicution################################################################################################################
-    def download_mern_front_image(self, line):
-        url = "http://34.68.6.54:7890/api/pull-artifact/1740687612-mern-frontend"
-        downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
-        file_name = os.path.join(downloads_folder, "mern_frontend.tar")
+    def do_docker_compose_up(self, line):
+        current_working_dir = os.getcwd()
+        extracted_file_name = os.path.join(current_working_dir, "MERN")
+        os.chdir(extracted_file_name)
 
-        response = requests.get(url, stream=True)
-        if response.status_code == 200:
-            with open(file_name, 'wb') as file:
-                for chunk in response.iter_content(chunk_size=8192):
-                    file.write(chunk)
+        try:
+            subprocess.run(['docker-compose', 'up'], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error running docker-compose: {e}")        
 
-            try:
-                subprocess.run(['docker', 'load', '-i', file_name], check=True)
-            except subprocess.CalledProcessError as e:
-                print(f'error extracting tar file: {e}')
-
-            print("Download Complete Here is your File Name: ", file_name)
-        
-        else: 
-            print("Failed to download file: ", response.status_code)
-
-    def run_mern_front_image(self, line):
-        print("would you like to run your frontend image?")
-        user_i = input("enter Y/N")
-
-        if user_i == "Y" or user_i == "y":
-            try:
-                print("your container is running on port 8080")
-                subprocess.Popen(['docker', 'run', '-p', '8080:8080','us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/1740617456-mern-frontend:latest'], check=True)
-            except subprocess.CalledProcessError as e:
-                print(f'Error running image: {e}')
-
-        else:
-            print("fine don't then")
-            self.do_next_step('')
-
-    def download_mern_back_image(self, line):
-        url = "http://34.68.6.54:7890/api/pull-artifact/1740687612-mern-backend"
-        downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
-        file_name = os.path.join(downloads_folder, "mern_backend.tar")
-
-        response = requests.get(url, stream=True)
-        if response.status_code == 200:
-            total_size = int(response.headers.get('Content-Length', 0))
-            downloaded_size = 0
-            with open(file_name, 'wb') as file:
-                for chunk in response.iter_content(chunk_size=8192):
-                    file.write(chunk)
-                    downloaded_size += len(chunk)
-                    # Check if download is complete
-                    if downloaded_size == total_size:
-                        print("Download completed successfully.")
-                    else:
-                        print(f"Downloaded {downloaded_size}/{total_size} bytes.")
-                
-            try:
-                subprocess.run(['docker', 'load', '-i', file_name], check=True)
-            except subprocess.CalledProcessError as e:
-                print(f'error extracting tar file: {e}')
-        else:
-            print("Failed to download file:", response.status_code)
-
-    def run_mern_back_image(self, line):
-        print("would you like to run your image?")
-        user_i = input("enter Y/N")
-
-        if user_i == "Y" or user_i == "y":
-            try:
-                print("your container is running on port 8080")
-                subprocess.Popen(['docker', 'run', '-p', '8080:8080','us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/1740621833-mern-backend:latest'], check=True)
-            except subprocess.CalledProcessError as e:
-                print(f'Error running image: {e}')
-
-        else:
-            print("fine don't then")
-            self.do_next_step('')
-
-    def download_mern_db_image(self, line):
-        url = "http://34.68.6.54:7890/api/pull-artifact/1740621833-mern-database"
-        downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
-        file_name = os.path.join(downloads_folder, "mern_database.tar")
-
-        response = requests.get(url, stream=True)
-        if response.status_code == 200:
-            with open(file_name, 'wb') as file:
-                for chunk in response.iter_content(chunk_size=8192):
-                    file.write(chunk)
-
-            try:
-                subprocess.run(['docker', 'load', '-i', file_name], check=True)
-            except subprocess.CalledProcessError as e:
-                print(f'error extracting tar file: {e}')
-
-            print("Download Complete Here is your File Name: ", file_name)
-        
-        else: 
-            print("Failed to download file: ", response.status_code)
-
-    def run_mern_db_image(self, line):
-        print("would you like to run your image?")
-        user_i = input("enter Y/N")
-
-        if user_i == "Y" or user_i == "y":
-            try:
-                print("your container is running on port 27017")
-                subprocess.Popen(['docker', 'run', '-p', '27017:27017','us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/1740621833-mern-database:latest'], check=True)
-            except subprocess.CalledProcessError as e:
-                print(f'Error running image: {e}')
-
-        else:
-            print("fine don't then")
-            self.do_next_step('')
 
 ########################################end of image stuff###################################################################################################################
+########################################download source code###################################################################################################################
 
+    def do_download_SC(self, line):
+        """downloads the source code for the purchaser"""
+
+        url = "http://50.5.72.176:5000/api/pull-code/mern" #stame as below comment
+        current_working_dir = os.getcwd()
+        file_name = os.path.join(current_working_dir, "MERN.tar") #store the selected source code option that the user chooses to download and replace it here.
+        extracted_file_name = os.path.join(current_working_dir, "MERN")
+
+        response = requests.get(url, stream=True)
+        if response.status_code == 200:
+            print("extracting file")
+            with open(file_name, 'wb') as file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    file.write(chunk)
+
+            
+            if not os.path.exists(extracted_file_name):
+                os.makedirs(extracted_file_name)
+                print(f"Created directory: {extracted_file_name}")
+
+            try:
+                subprocess.run(['tar', '-xvf', file_name,'-C', extracted_file_name], check=True)
+            except subprocess.CalledProcessError as e:
+                print(f'error extracting tar file: {e}')
         
 
     def do_next_step(self, line):
