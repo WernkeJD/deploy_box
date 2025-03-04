@@ -69,15 +69,11 @@ def get_container_access(request):
     username = request.data.get ('username')
 
     auth_user = User.objects.get(username=username)
-    user_id = auth_user.id
-    user = UserProfile.objects.get(user_id=user_id)
-
-    # Fetch the user's profile
-    profile = UserProfile.objects.get(user=user)
+    user_profile = UserProfile.objects.get(user=auth_user)
 
     # Return the list of containers the user has access to
     access_data = {
-        'has_mern': profile.has_mern
+        'has_mern': user_profile.has_mern
     }
 
     return JsonResponse(access_data, status=200)
