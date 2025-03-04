@@ -17,6 +17,7 @@ class deployCLI(cmd.Cmd):
         super().__init__()
         self.username = None
         self.cli_login()
+        self.get_user_containers()
         self.do_check_docker('')  # Automatically check for Docker when the CLI starts
 
         purchased_stack = input("which stack did you purchase? (MERN/MEAN): ")
@@ -62,6 +63,15 @@ class deployCLI(cmd.Cmd):
             print("You are logged in!")
         else:
             print("Login failed. Please try again.")
+
+    def get_user_containers(self):
+
+        username = self.username
+
+        response = requests.get(USER_CONTAINER_ACCESS_URL, data={'username': username})
+
+        print(response)
+        return response
 
 
 
