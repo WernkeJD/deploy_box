@@ -46,7 +46,7 @@ def signup(request):
 @api_view(['POST'])
 def verify_user_credentials(request):
     """
-    Verifies user credentials (username and password).
+    Verifies user credentials (username and password) from the CLI.
     """
     username = request.data.get('username')
     password = request.data.get('password')
@@ -57,14 +57,10 @@ def verify_user_credentials(request):
     user = authenticate(username=username, password=password)
 
     if user is not None:
-        # Generate JWT token
-        refresh = RefreshToken.for_user(user)
-        access_token = str(refresh.access_token)
-        return Response({'message': 'Login successful', 'access_token': access_token}, status=status.HTTP_200_OK)
+        return Response({'message': 'Login successful'}, status=status.HTTP_200_OK)
     else:
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
     
-
 #container views
 @api_view(['GET'])
 def get_container_access(request):
