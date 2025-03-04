@@ -5,7 +5,6 @@ def deploy_gcp(mongodb_uri: str,frontend_image: str, backend_image: str):
         "MONGO_URI": mongodb_uri,
         "FRONTEND_IMAGE": frontend_image,
         "BACKEND_IMAGE": backend_image
-
     }
 
 

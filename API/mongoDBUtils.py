@@ -109,6 +109,14 @@ def deploy_mongodb():
     
     if not project_id or not cluster_connection_uri:
         return {"error": "No empty projects available"}
+    
+    # Set network access to all
+    network_data = [{
+        "ipAddress": "0.0.0.0/0",
+        "comment": "Allow access from anywhere"
+        }]
+    
+    request_helper(f"groups/{project_id}/accessList", "POST", network_data)
 
     # TODO: Create user role to prevent unauthorized access
 
@@ -121,9 +129,8 @@ def deploy_mongodb():
             "password": user_password,
             "roles": [
                 {
-                    "collectionName": "Cluster0",
                     "databaseName": "admin",
-                    "roleName": "read"
+                    "roleName": "atlasAdmin"
                 }
             ]
         }

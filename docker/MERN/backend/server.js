@@ -13,14 +13,26 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+let db_is_connected = false;
+
 DB_Connect()
-  .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.error("MongoDB Connection Error:", err));
+  .then(() => {
+    console.log("MongoDB Connected")
+    db_is_connected = true;
+  })
+  .catch((err) => {
+    console.error("MongoDB Connection Error:", err)
+    process.exit(1);
+  });
 
 app.use("/api/items", itemRoutes);
 
+app.use("/error", (req, res) => {
+  res.json({ message: db_error });
+});
+
 app.use("/", (req, res) => {
-  res.json({ message: "Hello world" });
+  res.json({ message: `Hello world, database is${db_is_connected ? "" : " not"} connected` });
 });
 
 app.use((err, req, res, next) => {
