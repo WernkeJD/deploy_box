@@ -2,6 +2,16 @@ variable "MONGO_URI" {
   type = string
 }
 
+variable "FRONTEND_IMAGE" {
+  description = "Docker image for frontend"
+  type        = string
+}
+
+variable "BACKEND_IMAGE" {
+  description = "Docker image for backend"
+  type        = string
+}
+
 provider "google" {
   project = "deploy-box"
   region  = "us-central1"
@@ -14,7 +24,7 @@ resource "google_cloud_run_service" "default_backend" {
   template {
     spec {
       containers {
-        image = "kalebwbishop/mern-backend:latest"
+        image = var.BACKEND_IMAGE
         ports {
           container_port = 8080
         }
@@ -50,7 +60,7 @@ resource "google_cloud_run_service" "default_frontend" {
   template {
     spec {
       containers {
-        image = "us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/ftest"
+        image = var.FRONTEND_IMAGE
         ports {
           container_port = 8080
         }

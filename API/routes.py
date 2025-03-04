@@ -14,87 +14,63 @@ IMAGE_BASE_URL = "us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/"
 def home():
     return jsonify({'message': 'Welcome to the API!'})
 
-@api.route('/api/deployMERNStack', methods=['POST'])
-def deploy_mern_stack():
+def deploy_mern_stack(frontend_image: str, backend_image: str):
     mongodb_uri = deploy_mongodb()
-    deploy_gcp(mongodb_uri)
+    deploy_gcp(mongodb_uri, frontend_image, backend_image)
     return jsonify({"data": "MERN stack deployed successfully!"})
 
-@api.route("/api/push-artifact", methods=["POST"])
-def push_artifact():
-    data = request.form['data']
-    data = json.loads(data)
+@api.route("/api/push-code", methods=["POST"])
+def push_code():
+    # Can be MERN or MEAN
+    stack_type = request.form['stack-type']
 
-    docker_build_file = request.form['dockerBuildFile']   
-
-    image_name = data.get("imageName")
-    project_id = "deploy-box"
-    repo = data.get("repo")
-    region = "us-central1"
-
-    if not all([image_name, project_id, repo, region]):
-        return jsonify({"error": "Missing required fields" + " ".join([image_name, project_id, repo, region])}), 400
-
-    full_image_name = f"{region}-docker.pkg.dev/{project_id}/{repo}/{image_name}:latest"
-
-    try:
-        # Download the Dockerfile
-        with open("Dockerfile", "w") as f:
-            f.write(docker_build_file)
-
-            
-        print(os.curdir)
-
-        # Authenticate with GCP
-        os.system(f"gcloud auth configure-docker {region}-docker.pkg.dev")
-
-        # Build the Docker image
-        os.system(f"docker build -t {full_image_name} .")
-
-        # Push to Google Cloud Artifact Registry
-        subprocess.run(["docker", "push", full_image_name], check=True)
-
-        return jsonify({"message": "Artifact pushed successfully", "image": full_image_name})
-    except subprocess.CalledProcessError as e:
-        return jsonify({"error": str(e)}), 500
-
-@api.route("/api/pull-artifact/<url>", methods=["GET"])
-def pull_artifact(url):
-    container_url = "us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/" + url
-    # Pull the Docker image
-    os.system(f"docker pull {container_url}")
+    if stack_type not in ["MERN", "MEAN"]:
+        return jsonify({"error": "Invalid stack type"}), 400
     
-    # Save the Docker image to a tar file
-    os.system(f"docker save {container_url} > ./test.tar")
+    source_code = request.files['source-code']
 
-    # Return the pulled image as a file
-    return send_file("./test.tar", as_attachment=True)
+    if not source_code:
+        return jsonify({"error": "No source code provided"}), 400
+    
+    if not os.path.exists("./temp"):
+        os.makedirs("./temp")
+    
+    curr_time = int(time.time())
+    temp_dir = f"./temp/{curr_time}"
 
-@api.route("/api/copy-artifacts", methods=["GET"])
-def copy_artifacts():
-    frontend_url = "kalebwbishop/mern-frontend"
-    backend_url = "kalebwbishop/mern-backend"
-    database_url = "kalebwbishop/mern-database:0.0.1"
-
-    # Pull the Docker images
-    os.system(f"docker pull {frontend_url}")
-    os.system(f"docker pull {backend_url}")
-    os.system(f"docker pull {database_url}")
-
-    user_id = int(time.time())
-
-    os.system("gcloud auth activate-service-account --key-file=key.json")
-    os.system("gcloud auth configure-docker us-central1-docker.pkg.dev")
+    # Unpack the source code
+    os.mkdir(temp_dir)
+    source_code.save(f"{temp_dir}/sc.tar")
+    os.system(f"tar -xf {temp_dir}/sc.tar -C {temp_dir}")
 
 
-    # Retag the Docker images
-    os.system(f"docker tag {frontend_url} {IMAGE_BASE_URL}{user_id}-mern-frontend:latest")
-    os.system(f"docker tag {backend_url} {IMAGE_BASE_URL}{user_id}-mern-backend:latest")
-    os.system(f"docker tag {database_url} {IMAGE_BASE_URL}{user_id}-mern-database:latest")
+    # Build the Docker images
+    os.system(f"docker build -t {IMAGE_BASE_URL}{stack_type.lower()}-frontend {temp_dir}/frontend")
+    os.system(f"docker build -t {IMAGE_BASE_URL}{stack_type.lower()}-backend {temp_dir}/backend")
 
     # Push the Docker images
-    os.system(f"docker push {IMAGE_BASE_URL}{user_id}-mern-frontend:latest")
-    os.system(f"docker push {IMAGE_BASE_URL}{user_id}-mern-backend:latest")
-    os.system(f"docker push {IMAGE_BASE_URL}{user_id}-mern-database:latest")
+    subprocess.run(["docker", "push", f"{IMAGE_BASE_URL}{stack_type.lower()}-frontend"], check=True)
+    subprocess.run(["docker", "push", f"{IMAGE_BASE_URL}{stack_type.lower()}-backend"], check=True)
 
-    return jsonify({"message": "Artifacts copied successfully"})
+    if stack_type == "MERN":
+        deploy_mern_stack(f"{IMAGE_BASE_URL}{stack_type.lower()}-frontend", f"{IMAGE_BASE_URL}{stack_type.lower()}-backend")
+    else:
+        print("MEAN stack deployment not implemented yet")
+    
+    # Clean up
+    os.system(f"rm -rf {temp_dir}")
+
+    return jsonify({"message": "Artifact pushed successfully"})
+
+@api.route("/api/pull-code/<source_code>", methods=["GET"])
+def pull_code(source_code: str):
+
+    source_code = source_code.upper()
+
+    # Check if the file exists
+    if not os.path.exists(f"./source_codes/{source_code}.tar"):
+        return jsonify({"error": f"{source_code} does not exist"}), 404
+    
+    return send_file(f"./source_codes/{source_code}.tar", as_attachment=True)
+
+
