@@ -7,7 +7,6 @@ import json
 import time
 from google.cloud import storage
 import io
-from helpers.auth import require_authentication
 
 api = Blueprint('api', __name__)
 
@@ -69,7 +68,6 @@ def push_code():
     return jsonify({"message": "Artifact pushed successfully"})
 
 @api.route("/api/pull-code/<source_code>", methods=["GET"])
-@require_authentication
 def pull_code(source_code: str):
     source_code = source_code.upper()
 

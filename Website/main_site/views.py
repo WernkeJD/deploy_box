@@ -1,17 +1,17 @@
 from django.shortcuts import render, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.forms import UserCreationForm
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.models import User
 from django.contrib.auth import logout, authenticate
 from .forms import CustomUserCreationForm
-from .models import UserProfile
-from django.contrib.auth.models import User
+from .models import UserProfile, Stacks, DeployedStacks
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+import requests
 
 # Basic Routes
 def home(request):
@@ -80,18 +80,43 @@ def user_info(request):
         "last_name": user.last_name,
     })
 
-#container views
 @api_view(['GET'])
-def get_container_access(request):
-    username = request.data.get ('username')
+@permission_classes([IsAuthenticated])
+def get_available_stacks(request):
+    user = request.user
+    stacks = user.stacks_set.all()
+    return Response(stacks.values(), status=status.HTTP_200_OK)
 
-    auth_user = User.objects.get(username=username)
-    user_profile = UserProfile.objects.get(user=auth_user)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_stack(request):
+    user = request.user
+    stack_type = request.data.get('type')
+    variant = request.data.get('variant')
+    version = request.data.get('version')
 
-    # Return the list of containers the user has access to
-    access_data = {
-        'has_mern': user_profile.has_mern
-    }
+    if not type or not variant or not version:
+        return Response({'error': 'Type, variant, and version are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    return JsonResponse(access_data, status=200)
+    # Check if the stack already exists
+    if Stacks.objects.filter(user=user, type=stack_type, variant=variant, version=version).exists():
+        return Response({'error': 'Stack already exists'}, status=status.HTTP_400_BAD_REQUEST)
 
+    Stacks.objects.create(user=user, type=stack_type, variant=variant, version=version)
+    return Response({'message': 'Stack added successfully'}, status=status.HTTP_201_CREATED)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def download_stack(request, stack_id):
+    user = request.user
+
+    stack = Stacks.objects.get(id=stack_id, user=user)
+
+    source_code = requests.get(f'http://localhost:5000/api/pull-code/{stack.type}')
+    if source_code.status_code != 200:
+        return Response({'error': 'Failed to download stack'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    response = HttpResponse(source_code.content, content_type='application/zip')
+    response['Content-Disposition'] = f'attachment; filename="{stack.type}.zip"'
+    return response
+    
