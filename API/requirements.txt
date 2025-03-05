@@ -4,3 +4,4 @@ requests
 selenium
 webdriver-manager
 python-terraform
+google-cloud-storage

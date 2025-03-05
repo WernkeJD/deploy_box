@@ -120,6 +120,8 @@ def load_tokens():
     global access_token, refresh_token, login_complete
     access_token = keyring.get_password(SERVICE_NAME, "access_token")
     refresh_token = keyring.get_password(SERVICE_NAME, "refresh_token")
+    login_complete = access_token is not None
+    
 
 def logout():
     """Clear stored tokens."""

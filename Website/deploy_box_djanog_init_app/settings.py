@@ -52,6 +52,12 @@ INSTALLED_APPS = [
     'theme',
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+    ],
+}
+
 #essential for taillwind
 TAILWIND_APP_NAME = 'theme'
 

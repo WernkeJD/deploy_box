@@ -5,10 +5,16 @@ import os
 import subprocess
 import json
 import time
+from google.cloud import storage
+import io
+from helpers.auth import require_authentication
 
 api = Blueprint('api', __name__)
 
 IMAGE_BASE_URL = "us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/"
+BUCKET_NAME = "deploy_box_bucket"
+
+storage_client = storage.Client()
 
 @api.route('/')
 def home():
@@ -63,14 +69,27 @@ def push_code():
     return jsonify({"message": "Artifact pushed successfully"})
 
 @api.route("/api/pull-code/<source_code>", methods=["GET"])
+@require_authentication
 def pull_code(source_code: str):
-
     source_code = source_code.upper()
 
-    # Check if the file exists
-    if not os.path.exists(f"./source_codes/{source_code}.tar"):
+    # Define the bucket and file path
+    file_name = f"{source_code}.tar"
+
+    # Access the GCS bucket
+    bucket = storage_client.bucket(BUCKET_NAME)
+    blob = bucket.blob(file_name)
+
+    # Check if the blob exists in the bucket
+    if not blob.exists():
         return jsonify({"error": f"{source_code} does not exist"}), 404
-    
-    return send_file(f"./source_codes/{source_code}.tar", as_attachment=True)
+
+    # Stream the file to the user as an attachment
+    file_stream = io.BytesIO()
+    blob.download_to_file(file_stream)
+    file_stream.seek(0)
+
+    # Send the file to the user
+    return send_file(file_stream, as_attachment=True, download_name=file_name)
 
 

@@ -4,7 +4,6 @@ from django.contrib.auth.forms import UserCreationForm
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.models import User
-from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import logout, authenticate
 from .forms import CustomUserCreationForm
 from .models import UserProfile
@@ -61,6 +60,12 @@ def verify_user_credentials(request):
         return Response({'message': 'Login successful'}, status=status.HTTP_200_OK)
     else:
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def validate_token(request):
+    # Token is automatically validated via Django OAuth2 backend
+    return JsonResponse({"message": "Token is valid!"})
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
