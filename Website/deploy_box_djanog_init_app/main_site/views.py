@@ -1,20 +1,20 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
 from django.contrib.auth.forms import UserCreationForm
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.models import User
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import logout, authenticate
 from .forms import CustomUserCreationForm
 from .models import UserProfile
 from django.contrib.auth.models import User
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
 
-
-#Basic Route Return Functions
-
+# Basic Routes
 def home(request):
     return render(request, "home.html", {})
 
@@ -27,8 +27,7 @@ def pricing(request):
 def maintenance(request):
     return render(request, "maintenance.html", {})
 
-#authentication endpoints
-
+# Authentication
 def signup(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
@@ -62,7 +61,20 @@ def verify_user_credentials(request):
         return Response({'message': 'Login successful'}, status=status.HTTP_200_OK)
     else:
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-    
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def user_info(request):
+    """Return information about the authenticated user."""
+    user = request.user
+    return Response({
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+    })
+
 #container views
 @api_view(['GET'])
 def get_container_access(request):
@@ -77,3 +89,4 @@ def get_container_access(request):
     }
 
     return JsonResponse(access_data, status=200)
+

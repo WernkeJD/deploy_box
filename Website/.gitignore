@@ -1,7 +1,0 @@
-/venv
-# /deploy_box_djanog_init_app/main_site/migrations
-db.sqlite3
-package.json
-package-lock.json
-node_modules
-.env

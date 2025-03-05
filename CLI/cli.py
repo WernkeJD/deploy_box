@@ -5,9 +5,10 @@ import os
 import requests
 import getpass
 
+from helpers import auth
+
 USER_VERIFICATION_URL = 'https://deploy-box.onrender.com/verify_user_credentials/'
 USER_CONTAINER_ACCESS_URL = 'https://deploy-box.onrender.com/get_container_access/'
-
 
 class deployCLI(cmd.Cmd):
     prompt = 'Deploy_Box >> '
@@ -16,20 +17,23 @@ class deployCLI(cmd.Cmd):
     def __init__(self):
         super().__init__()
         self.username = None
-        self.cli_login()
-        self.get_user_containers()
-        self.do_check_docker('')  # Automatically check for Docker when the CLI starts
 
-        purchased_stack = input("which stack did you purchase? (MERN/MEAN): ")
-        if purchased_stack == "mern" or purchased_stack == "MERN" or purchased_stack == "Mern":
-            self.download_mern_front_image('')
-            self.download_mern_back_image('')
-            self.download_mern_db_image('')
-            self.run_mern_front_image('')
-            self.run_mern_back_image('')
-            self.run_mern_db_image('')
-        else:
-            print("sorry stack not available yet!")
+        auth.load_tokens()
+        auth.login()
+
+        # self.get_user_containers()
+        # self.do_check_docker('')  # Automatically check for Docker when the CLI starts
+
+        # purchased_stack = input("which stack did you purchase? (MERN/MEAN): ")
+        # if purchased_stack == "mern" or purchased_stack == "MERN" or purchased_stack == "Mern":
+        #     self.download_mern_front_image('')
+        #     self.download_mern_back_image('')
+        #     self.download_mern_db_image('')
+        #     self.run_mern_front_image('')
+        #     self.run_mern_back_image('')
+        #     self.run_mern_db_image('')
+        # else:
+        #     print("sorry stack not available yet!")
 
     def verify_user_credentials(self, username, password):
         # Send a POST request to your Django API
@@ -234,6 +238,14 @@ class deployCLI(cmd.Cmd):
                 subprocess.run(['tar', '-xvf', file_name,'-C', extracted_file_name], check=True)
             except subprocess.CalledProcessError as e:
                 print(f'error extracting tar file: {e}')
+
+    def do_login(self, _):
+        """Login to the CLI"""
+        auth.login()
+
+    def do_logout(self, _):
+        """Clear stored tokens"""
+        auth.logout()
         
 
     def do_next_step(self, line):
