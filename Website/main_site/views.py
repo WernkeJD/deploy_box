@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.models import User
 from django.contrib.auth import logout, authenticate
 from .forms import CustomUserCreationForm
-from .models import UserProfile, Stacks, DeployedStacks
+from .models import UserProfile, Stacks, Deployments
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -87,6 +87,13 @@ def get_available_stacks(request):
     stacks = user.stacks_set.all()
     return Response(stacks.values(), status=status.HTTP_200_OK)
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_available_deployments(request):
+    user = request.user
+    deployments = user.deployedstacks_set.all()
+    return Response(deployments.values(), status=status.HTTP_200_OK)
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_stack(request):
@@ -104,6 +111,27 @@ def add_stack(request):
 
     Stacks.objects.create(user=user, type=stack_type, variant=variant, version=version)
     return Response({'message': 'Stack added successfully'}, status=status.HTTP_201_CREATED)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_deployment(request):
+    user = request.user
+    deployment_name = request.data.get('name')
+    deployment_type = request.data.get('type')
+    deployment_status = request.data.get('status')
+    tar_file = request.FILES.get('file')
+
+    if not deployment_name or not deployment_type or not deployment_status or not tar_file:
+        return Response({'error': 'Name, type, status, and file are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    files = {'file': tar_file}
+    response = requests.post('http://localhost:5000/api/push-code', files=files, data=request.data)
+    if response.status_code != 200:
+        return Response({'error': 'Failed to upload deployment'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    Deployments.objects.create(user=user, name=deployment_name, type=deployment_type, status=deployment_status)
+
+    return Response({'message': 'Deployment added successfully'}, status=status.HTTP_201_CREATED)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

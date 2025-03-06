@@ -20,9 +20,10 @@ class Stacks(models.Model):
     def __str__(self):
         return self.user.username + " - " + self.type
     
-class DeployedStacks(models.Model):
+class Deployments(models.Model):
     user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
-    stack_type = models.CharField(max_length=4)
+    stack = models.ForeignKey(Stacks, on_delete=models.DO_NOTHING)
+    name = models.CharField(max_length=100)
     frontend_id = models.CharField(max_length=100)
     backend_id = models.CharField(max_length=100)
     database_id = models.CharField(max_length=100)

@@ -1,10 +1,8 @@
 from flask import Blueprint, jsonify, request, jsonify, send_file
 from mongoDBUtils import deploy_mongodb
 from GCPUtils import deploy_gcp
-import os
 import subprocess
-import json
-import time
+import tarfile
 from google.cloud import storage
 import io
 
@@ -27,45 +25,59 @@ def deploy_mern_stack(frontend_image: str, backend_image: str):
 @api.route("/api/push-code", methods=["POST"])
 def push_code():
     # Can be MERN or MEAN
-    stack_type = request.form['stack-type']
+    stack_type = request.form.get("stack-type")
 
     if stack_type not in ["MERN", "MEAN"]:
         return jsonify({"error": "Invalid stack type"}), 400
-    
-    source_code = request.files['source-code']
+
+    source_code = request.files.get("source-code")
 
     if not source_code:
         return jsonify({"error": "No source code provided"}), 400
-    
-    if not os.path.exists("./temp"):
-        os.makedirs("./temp")
-    
-    curr_time = int(time.time())
-    temp_dir = f"./temp/{curr_time}"
 
-    # Unpack the source code
-    os.mkdir(temp_dir)
-    source_code.save(f"{temp_dir}/sc.tar")
-    os.system(f"tar -xf {temp_dir}/sc.tar -C {temp_dir}")
+    # Read the uploaded tar file into memory
+    tar_bytes = io.BytesIO(source_code.read())
 
+    with tarfile.open(fileobj=tar_bytes, mode="r:*") as tar:
+        members = tar.getmembers()
+        
+        # Ensure the tar file contains expected directories
+        if not any(m.name.startswith("frontend/") for m in members) or not any(m.name.startswith("backend/") for m in members):
+            return jsonify({"error": "Invalid source structure. Expecting 'frontend' and 'backend' directories."}), 400
 
-    # Build the Docker images
-    os.system(f"docker build -t {IMAGE_BASE_URL}{stack_type.lower()}-frontend {temp_dir}/frontend")
-    os.system(f"docker build -t {IMAGE_BASE_URL}{stack_type.lower()}-backend {temp_dir}/backend")
+        # Extract frontend files into memory
+        frontend_files = {m.name: tar.extractfile(m).read() for m in members if m.name.startswith("frontend/") and m.isfile()}
+        backend_files = {m.name: tar.extractfile(m).read() for m in members if m.name.startswith("backend/") and m.isfile()}
 
-    # Push the Docker images
-    subprocess.run(["docker", "push", f"{IMAGE_BASE_URL}{stack_type.lower()}-frontend"], check=True)
-    subprocess.run(["docker", "push", f"{IMAGE_BASE_URL}{stack_type.lower()}-backend"], check=True)
+    # Build and push the Docker images (without writing files to disk)
+    build_and_push_docker_image(frontend_files, f"{IMAGE_BASE_URL}{stack_type.lower()}-frontend")
+    build_and_push_docker_image(backend_files, f"{IMAGE_BASE_URL}{stack_type.lower()}-backend")
 
     if stack_type == "MERN":
         deploy_mern_stack(f"{IMAGE_BASE_URL}{stack_type.lower()}-frontend", f"{IMAGE_BASE_URL}{stack_type.lower()}-backend")
     else:
         print("MEAN stack deployment not implemented yet")
-    
-    # Clean up
-    os.system(f"rm -rf {temp_dir}")
 
     return jsonify({"message": "Artifact pushed successfully"})
+
+
+def build_and_push_docker_image(files, image_name):
+    """Builds a Docker image using an in-memory context."""
+    with io.BytesIO() as dockerfile_context:
+        with tarfile.open(fileobj=dockerfile_context, mode="w") as tar:
+            for filename, filedata in files.items():
+                tarinfo = tarfile.TarInfo(name=filename)
+                tarinfo.size = len(filedata)
+                tar.addfile(tarinfo, io.BytesIO(filedata))
+        
+        dockerfile_context.seek(0)
+        
+        # Build the Docker image from the in-memory context
+        subprocess.run(["docker", "build", "-t", image_name, "-"], input=dockerfile_context.read(), check=True)
+
+    # Push the Docker image
+    subprocess.run(["docker", "push", image_name], check=True)
+
 
 @api.route("/api/pull-code/<source_code>", methods=["GET"])
 def pull_code(source_code: str):
