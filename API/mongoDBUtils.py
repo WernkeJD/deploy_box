@@ -125,7 +125,7 @@ def deploy_mongodb():
     user_data = {
             "groupId": project_id,
             "databaseName": "admin",
-            "username": "admin",
+            "username": "deployBoxUser",
             "password": user_password,
             "roles": [
                 {

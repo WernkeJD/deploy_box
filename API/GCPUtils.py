@@ -11,7 +11,15 @@ def deploy_gcp(mongodb_uri: str,frontend_image: str, backend_image: str):
     tf = python_terraform.Terraform(working_dir=".")
     print(tf.init())
     print(tf.plan(var=var))
-    print(tf.apply(var=var, skip_plan=True))
+    return_code, stdout, stderr = tf.apply(var=var, skip_plan=True, capture_output=True)
+    if return_code != 0:
+        raise Exception(f"Error applying terraform: {stderr}")
+
+    output = tf.output()
+    frontend_url = output['url_frontend']['value']
+    backend_url = output['backend_url']['value']
+
+    return frontend_url, backend_url
 
 
 if __name__ == '__main__':

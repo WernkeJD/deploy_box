@@ -11,7 +11,8 @@ class DeployCLI(cmd.Cmd):
         super().__init__()
         self.auth = AuthHelper()
         self.docker = DockerHelper()
-        self.deployment = DeploymentHelper()
+        self.deployment = DeploymentHelper(auth=self.auth)
+
         self.deployment.upload_source_code()
 
     def do_login(self, _):

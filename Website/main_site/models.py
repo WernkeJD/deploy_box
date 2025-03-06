@@ -24,9 +24,9 @@ class Deployments(models.Model):
     user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
     stack = models.ForeignKey(Stacks, on_delete=models.DO_NOTHING)
     name = models.CharField(max_length=100)
-    frontend_id = models.CharField(max_length=100)
-    backend_id = models.CharField(max_length=100)
-    database_id = models.CharField(max_length=100)
+    frontend_id = models.CharField(max_length=255)
+    backend_id = models.CharField(max_length=255)
+    database_id = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

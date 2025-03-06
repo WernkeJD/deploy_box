@@ -2,10 +2,11 @@ import os
 import subprocess
 from helpers.auth import AuthHelper
 from helpers.menu import MenuHelper
+import requests
 
 class DeploymentHelper:
-    def __init__(self):
-        self.auth = AuthHelper()
+    def __init__(self, auth: AuthHelper):
+        self.auth = auth
 
     def get_available_stacks(self):
         """Get a list of stacks for the user"""
@@ -51,16 +52,12 @@ class DeploymentHelper:
         response = self.auth.request_api('GET', 'get_available_deployments')
 
         if response.status_code != 200:
-            print(f"Error: {response.json()['error']}")
+            # print(f"Error: {response.text}")
             return
         
         data = response.json()
 
-        print("Available deployments:")
-        for idx, deployment in enumerate(data):
-            print(f"{idx + 1}. {deployment['name']} : {deployment['status']}")
-
-        options = [f"{deployment['name']} : {deployment['status']}" for deployment in data]
+        options = [f"{deployment['name']}" for deployment in data]
         options.append("Upload new deployment")
         options.append("Cancel")
 
@@ -84,5 +81,32 @@ class DeploymentHelper:
         # Upload new deployment
         elif deployment_id == -2:
             print("Uploading new deployment...")
+            deployment_name = input("Enter deployment name: ")
+            deployment_stack_id, _ = self.get_available_stacks()
+
+            if not deployment_name:
+                print("Error: Deployment name is required.")
+                return
+            
+            data = {
+                'name': deployment_name,
+                'stack_id': deployment_stack_id
+            }
+
+            # Open the file in binary mode and stream it
+            files = {
+                'file': open('./MERN.tar', 'rb')  # Replace 'your_file.tar' with your .tar file path
+            }
+
+            # response = requests.post('http://localhost:5000/api/testing', data=data, files=files, stream=True)
+
+            # print(response.json())
+
+            self.auth.request_api('POST', 'upload_deployment', data=data, files=files, stream=True)
+
+
             return
+        
+        # Deploy the selected deployment
+        print("Deploying selected deployment...")
         

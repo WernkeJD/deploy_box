@@ -16,6 +16,7 @@ urlpatterns = [
     path('api/get_available_stacks', views.get_available_stacks, name='get_available_stacks'),
     path('api/get_available_deployments', views.get_available_deployments, name='get_available_deployments'),
     path('api/add_stack', views.add_stack, name='add_stack'),
+    path('api/upload_deployment', views.upload_deployment, name='upload_deployment'),
     path('api/download_stack/<int:stack_id>', views.download_stack, name='download_stack'),
     path("o/", include("oauth2_provider.urls", namespace="oauth2_provider")),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
