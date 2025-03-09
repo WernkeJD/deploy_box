@@ -72,8 +72,6 @@ class DeploymentHelper:
     def upload_source_code(self):
         deployment_id = self.get_available_deployments()
 
-        print(f"Selected deployment: {deployment_id}")
-
         # Cancel the operation
         if deployment_id == -1:
             print("Operation cancelled.")

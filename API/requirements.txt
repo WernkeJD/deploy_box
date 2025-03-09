@@ -3,5 +3,6 @@ python-dotenv
 requests
 selenium
 webdriver-manager
-python-terraform
 google-cloud-storage
+google-cloud-run
+google-cloud-iam

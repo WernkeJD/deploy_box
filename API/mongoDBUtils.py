@@ -61,9 +61,10 @@ def request_helper(url, method="GET", data=None):
                 MONGODB_TOKEN = None
                 get_mongodb_token()
                 continue
-
-            response.raise_for_status()
-            return response.json()
+            elif response.ok:
+                return response.json()
+            else:
+                response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             return err
         except Exception as e:
@@ -85,7 +86,9 @@ def deploy_mongodb():
         project_name = project["name"]
 
         # Skip if the project name doesn't contain the placeholder
-        if "DEPLOY-BOX-PROJECT-PLACEHOLDER" not in project_name:
+        # placeholder_text = "DEPLOY-BOX-PROJECT-PLACEHOLDER"
+        placeholder_text = "97ecc974-f47c-49f2-96bb-b1371eec12af" # For testing
+        if placeholder_text not in project_name:
             continue
 
 
@@ -135,7 +138,14 @@ def deploy_mongodb():
             ]
         }
     
-    request_helper(f"groups/{project_id}/databaseUsers", "POST", user_data)
+    response = request_helper(f"groups/{project_id}/databaseUsers", "POST", user_data)
+
+    if (isinstance(response, requests.exceptions.HTTPError)):
+        # If the user already exists, update the user
+        if response.response.status_code == 409:
+            request_helper(f"groups/{project_id}/databaseUsers/admin/deployBoxUser", "PATCH", user_data)
+        else:
+            return {"error": "Error creating database user"}
 
     connection_string = f"mongodb+srv://deployBoxUser:{user_password}@{cluster_connection_uri}/?retryWrites=true&w=majority&appName=Cluster0"
 
@@ -145,7 +155,7 @@ def deploy_mongodb():
         "name": project_name
     }
 
-    request_helper(f"groups/{project_id}", "PATCH", project_data)
+    # request_helper(f"groups/{project_id}", "PATCH", project_data)
 
     return connection_string
 

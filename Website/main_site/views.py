@@ -6,12 +6,13 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.models import User
 from django.contrib.auth import logout, authenticate
 from .forms import CustomUserCreationForm
-from .models import UserProfile, Stacks, Deployments
+from .models import UserProfile, Stacks, Deployments, DeploymentFrontend, DeploymentBackend, DeploymentDatabase
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 import requests
+import json
 
 # Basic Routes
 def home(request):
@@ -120,35 +121,40 @@ def upload_deployment(request):
     deployment_stack_id = request.data.get('stack_id')
     tar_file = request.FILES.get('file')
 
-    if not deployment_name or not deployment_stack_id or not tar_file:
-        return Response({'error': 'Name, stack_id, and file are required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not deployment_name:
+        return Response({'error': 'Name is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if not deployment_stack_id:
+        return Response({'error': 'Stack ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if not tar_file:
+        return Response({'error': 'File is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
     # Find the stack for the deployment
     try:
         stack = Stacks.objects.get(id=deployment_stack_id, user=user)
     except Stacks.DoesNotExist:
         return Response({'error': 'Stack not found.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    # Create the deployment record in the database
+    deployment = Deployments.objects.create(user=user, name=deployment_name, stack=stack)
 
-    jsonData = {
+    json_data = {
         'stack-type': stack.type,
+        'deployment-id': deployment.id
     }
 
     # Stream the file to the destination API
     try:
-        response = requests.post('http://localhost:5000/api/push-code', files=request.FILES, json=jsonData, stream=True)
+        response = requests.post('http://localhost:5000/api/code', files=request.FILES, data=json_data, stream=True)
         if response.status_code != 200:
-            return Response({'error': 'Failed to upload deployment to destination.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(response.json(), status=response.status_code)
 
-        # Create the deployment record in the database
+        # Create the frontend, backend, and database records in the database
         deployment_data = response.json()
-        Deployments.objects.create(
-            user=user,
-            name=deployment_name,
-            stack=stack,
-            frontend_id=deployment_data['frontend_id'],
-            backend_id=deployment_data['backend_id'],
-            database_id=deployment_data['database_id']
-        )
+        DeploymentFrontend.objects.create(deployment=deployment, url=deployment_data['frontend_id'])
+        DeploymentBackend.objects.create(deployment=deployment, url=deployment_data['backend_id'])
+        DeploymentDatabase.objects.create(deployment=deployment, uri=deployment_data['database_uri'])
 
         return Response({'message': 'Deployment added successfully'}, status=status.HTTP_201_CREATED)
 

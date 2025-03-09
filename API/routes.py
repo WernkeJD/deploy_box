@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, jsonify, send_file
 from mongoDBUtils import deploy_mongodb
-from GCPUtils import deploy_gcp
+from GCPUtils import deploy_service
 import subprocess
 import tarfile
 from google.cloud import storage
@@ -18,19 +18,29 @@ storage_client = storage.Client()
 def home():
     return jsonify({'message': 'Welcome to the API!'})
 
-def deploy_mern_stack(frontend_image: str, backend_image: str):
+def deploy_mern_stack(frontend_image: str, backend_image: str, deployment_id: str):
     mongodb_uri = deploy_mongodb()
-    frontend_url, backend_url = deploy_gcp(mongodb_uri, frontend_image, backend_image)
+    backend_url = deploy_service(f"backend-{deployment_id}", backend_image, {"MONGO_URI": mongodb_uri})
+    frontend_url = deploy_service(f"frontend-{deployment_id}", frontend_image, {"REACT_APP_BACKEND_URL": backend_url})
+    
     return frontend_url, backend_url, mongodb_uri
 
-@api.route("/api/push-code", methods=["POST"])
+@api.route("/api/code", methods=["POST"])
 def push_code():
     content_length = request.content_length
     print(f"Attempted content length: {content_length} bytes")
     
     # Can be MERN or MEAN
-    # stack_type = request.data.get("stack-type")
-    stack_type = "MERN"
+    stack_type = request.form.get("stack-type")
+    print(f"Stack type: {stack_type}")
+    print(f"Deployment ID: {request.form.get('deployment-id')}")
+    deployment_id = request.form.get("deployment-id")
+
+    if not stack_type:
+        return jsonify({"error": "Stack type not provided"}), 400
+    
+    if not deployment_id:
+        return jsonify({"error": "Deployment ID not provided"}), 400
 
     if stack_type not in ["MERN", "MEAN"]:
         return jsonify({"error": "Invalid stack type"}), 400
@@ -40,20 +50,8 @@ def push_code():
     if not file:
         return jsonify({"error": "No file provided"}), 400
 
-    # Create a BytesIO object to stream the file content
-    file_bytes = io.BytesIO()
-
-    # Stream the file directly to BytesIO
-    with file.stream as file_stream:
-        while chunk := file_stream.read(8192):  # Read the file in 8KB chunks
-            file_bytes.write(chunk)
-
-    # Now that the entire file is loaded into file_bytes, we can process it
-    file_bytes.seek(0)  # Rewind the BytesIO stream to the start
-
-    # Save the file to disk (optional)
-    with open("uploaded_file.tar", "wb") as f:
-        f.write(file_bytes.read())
+    # Save the file to the local filesystem
+    file.save("uploaded_file.tar")
 
     # Extract the tar file to a specific directory
     with tarfile.open("uploaded_file.tar", "r") as tar:
@@ -63,16 +61,16 @@ def push_code():
     frontend_dir = "./extracted_files/frontend"
     backend_dir = "./extracted_files/backend"
    
-    # Build and push the Docker images (without writing files to disk)
-    build_and_push_docker_image(frontend_dir, f"{IMAGE_BASE_URL}{stack_type.lower()}-frontend")
-    build_and_push_docker_image(backend_dir, f"{IMAGE_BASE_URL}{stack_type.lower()}-backend")
+    # Build and push the Docker images
+    build_and_push_docker_image(frontend_dir, f"{IMAGE_BASE_URL}frontend-{deployment_id}")
+    build_and_push_docker_image(backend_dir, f"{IMAGE_BASE_URL}backend-{deployment_id}")
 
     frontend_url = None
     backend_url = None
     database_url = None
 
     if stack_type == "MERN":
-        frontend_url, backend_url, database_url = deploy_mern_stack(f"{IMAGE_BASE_URL}{stack_type.lower()}-frontend", f"{IMAGE_BASE_URL}{stack_type.lower()}-backend")
+        frontend_url, backend_url, database_url = deploy_mern_stack(f"{IMAGE_BASE_URL}frontend-{deployment_id}", f"{IMAGE_BASE_URL}backend-{deployment_id}", deployment_id)
     else:
         print("MEAN stack deployment not implemented yet")
 
@@ -98,36 +96,7 @@ def build_and_push_docker_image(directory, image_name):
     # Push the Docker image
     subprocess.run(["docker", "push", image_name], check=True)
 
-
-@api.route("/api/testing", methods=["POST"])
-def testing():
-    file = request.files.get("file")
-
-    if not file:
-        return jsonify({"error": "No file provided"}), 400
-
-    # Create a BytesIO object to stream the file content
-    file_bytes = io.BytesIO()
-
-    # Stream the file directly to BytesIO
-    with file.stream as file_stream:
-        while chunk := file_stream.read(8192):  # Read the file in 8KB chunks
-            file_bytes.write(chunk)
-
-    # Now that the entire file is loaded into file_bytes, we can process it
-    file_bytes.seek(0)  # Rewind the BytesIO stream to the start
-
-    # Save the file to disk (optional)
-    with open("uploaded_file.tar", "wb") as f:
-        f.write(file_bytes.read())
-
-    # Extract the tar file to a specific directory
-    with tarfile.open("uploaded_file.tar", "r") as tar:
-        tar.extractall("./extracted_files")
-
-    return jsonify({"data": "Hello, World!"})
-
-@api.route("/api/pull-code/<source_code>", methods=["GET"])
+@api.route("/api/code/<source_code>", methods=["GET"])
 def pull_code(source_code: str):
     source_code = source_code.upper()
 

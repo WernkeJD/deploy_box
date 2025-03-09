@@ -102,7 +102,10 @@ class AuthHelper:
 
     def request_api(self, method, endpoint, json=None, data=None, files=None, stream=False):
         """Make an authenticated request to the API."""
-        headers = {"Authorization": f"Bearer {self.access_token}"}
+        headers = {
+            "Authorization": f"Bearer {self.access_token}"
+            }
+        
         response = requests.request(method, f"{self.API_URL}/api/{endpoint}", headers=headers, json=json, data=data, files=files, stream=stream)
 
         if response.status_code == 401:

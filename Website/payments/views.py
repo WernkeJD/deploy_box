@@ -4,8 +4,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import TemplateView
 from django.http import HttpResponse
 from main_site.models import Stacks, User
-from rest_framework.response import Response
-from rest_framework import status
 import json
 
 import stripe
@@ -107,7 +105,5 @@ def stripe_webhook(request):
         user_obj = User.objects.get(id=user)
         Stacks.objects.create(user=user_obj, type=stack_type, variant=variant, version=version)
         return HttpResponse(status=200)
-
-        # TODO: run some custom code here
 
     return HttpResponse(status=200)
