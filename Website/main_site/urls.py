@@ -5,12 +5,12 @@ from django.contrib.auth import views as auth_views
 from . import views
 
 urlpatterns = [
-    path('', views.home, name="home"),
     path('stacks/', views.stacks, name="stacks"),
+    path('', views.home, name="home"),
     path('pricing/', views.pricing, name="pricing"),
     path('contact/', views.maintenance, name="maintenance"),
     path('accounts/signup/', views.signup, name='signup'),
-    path('accounts/login/', auth_views.LoginView.as_view(), name='login'),  
+    path('accounts/login/', auth_views.LoginView.as_view(), name='login'),
     path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('api/validate-token/', views.validate_token, name='validate-token'),
     path('api/get_available_stacks', views.get_available_stacks, name='get_available_stacks'),

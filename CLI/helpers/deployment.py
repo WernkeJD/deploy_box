@@ -19,7 +19,8 @@ class DeploymentHelper:
         data = response.json()
         options = [f"{stack['variant']} {stack['type']} : {stack['version']}" for stack in data]
         options.append("Cancel")
-        selected_idx, _ = MenuHelper.menu([f"{stack['variant']} {stack['type']} : {stack['version']}" for stack in data], "Select a stack to deploy:")
+
+        selected_idx, _ = MenuHelper.menu(options, "Select a stack to deploy:")
 
         return data[selected_idx]['id'], data[selected_idx]['type']
 
@@ -98,12 +99,7 @@ class DeploymentHelper:
                 'file': open('./MERN.tar', 'rb')  # Replace 'your_file.tar' with your .tar file path
             }
 
-            # response = requests.post('http://localhost:5000/api/testing', data=data, files=files, stream=True)
-
-            # print(response.json())
-
             self.auth.request_api('POST', 'upload_deployment', data=data, files=files, stream=True)
-
 
             return
         

@@ -137,7 +137,7 @@ def deploy_mongodb():
     
     request_helper(f"groups/{project_id}/databaseUsers", "POST", user_data)
 
-    connection_string = f"mongodb+srv://admin:{user_password}@{cluster_connection_uri}/?retryWrites=true&w=majority&appName=Cluster0"
+    connection_string = f"mongodb+srv://deployBoxUser:{user_password}@{cluster_connection_uri}/?retryWrites=true&w=majority&appName=Cluster0"
 
     # Rename the project
     project_name = str(uuid.uuid4())

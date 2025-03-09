@@ -9,6 +9,8 @@
         <div class="bg-white ring-2 ring-gray-200 shadow-2xl shado-gray-400 w-full rounded-lg divide-y divide-gray-200">
             <form action="{% url 'main_site:login' %}" method="POST" class="px-5 py-7">
                 {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.GET.next }}">
+
                 <div class="mb-5">
                     <label for="username" class="font-semibold text-sm text-gray-600 pb-1 block">Username</label>
                     <input type="text" name="username" id="username" class="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full" 

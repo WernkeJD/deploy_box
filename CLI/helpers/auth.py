@@ -37,7 +37,8 @@ class AuthHelper:
 
     def start_callback_server(self):
         """Starts a local web server to handle the OAuth callback."""
-        with socketserver.TCPServer(("localhost", 8080), self.OAuthHandler) as self.httpd:
+        handler = lambda *args, **kwargs: OAuthHandler(self, *args, **kwargs)  # Pass `self` to handler
+        with socketserver.TCPServer(("localhost", 8080), handler) as self.httpd:
             self.httpd.RequestHandlerClass.log_message = lambda *args, **kwargs: None
             self.httpd.serve_forever()
 
@@ -94,7 +95,7 @@ class AuthHelper:
 
         if "access_token" in tokens:
             self.access_token = tokens["access_token"]
-            self.__save_tokens()
+            self.save_tokens()
             print("Access token refreshed successfully!")
         else:
             print("\nError refreshing access token:", tokens)
@@ -111,53 +112,55 @@ class AuthHelper:
             response = requests.request(method, f"{self.API_URL}/api/{endpoint}", headers=headers, json=json, data=data, files=files, stream=stream)
 
         return response
-
-    class OAuthHandler(http.server.SimpleHTTPRequestHandler):
-        """Handles OAuth 2.0 callback."""
-
-        def do_GET(self):
-            """Handles the redirect from the OAuth provider."""
-            self.server_instance = self.server  # Reference the OAuthClient instance
-
-            parsed_path = urllib.parse.urlparse(self.path)
-            params = urllib.parse.parse_qs(parsed_path.query)
-
-            if "code" in params:
-                auth_code = params["code"][0]
-
-                token_data = {
-                    "grant_type": "authorization_code",
-                    "code": auth_code,
-                    "redirect_uri": self.server_instance.REDIRECT_URI,
-                    "client_id": self.server_instance.CLIENT_ID,
-                    "code_verifier": self.server_instance.CODE_VERIFIER,
-                }
-
-                response = requests.post(self.server_instance.TOKEN_URL, data=token_data)
-                tokens = response.json()
-
-                if "access_token" in tokens:
-                    self.server_instance.access_token = tokens["access_token"]
-                    self.server_instance.refresh_token = tokens.get("refresh_token")
-                    self.server_instance.__save_tokens()
-                    self.server_instance.login_complete = True
-                else:
-                    print("\nError getting access token:", tokens)
-
-                self.send_response(200)
-                self.send_header("Content-type", "text/html")
-                self.end_headers()
-                self.wfile.write(b"<html><body><h1>Authentication Successful!</h1><p>You can close this tab.</p></body></html>")
-
-                threading.Thread(target=self.server_instance.httpd.shutdown).start()
-
-            else:
-                self.send_response(400)
-                self.end_headers()
-                self.wfile.write(b"<html><body><h1>Error: No code received</h1></body></html>")
-
-    def __save_tokens(self):
+    
+    def save_tokens(self):
         """Securely store tokens in the system keychain."""
         keyring.set_password(self.SERVICE_NAME, "access_token", self.access_token)
         keyring.set_password(self.SERVICE_NAME, "refresh_token", self.refresh_token)
+
+class OAuthHandler(http.server.SimpleHTTPRequestHandler):
+    """Handles OAuth 2.0 callback."""
+    def __init__(self, auth_helper: AuthHelper, *args, **kwargs):
+        self.auth_helper = auth_helper
+        super().__init__(*args, **kwargs)
+
+    def do_GET(self):
+        """Handles the redirect from the OAuth provider."""
+        parsed_path = urllib.parse.urlparse(self.path)
+        params = urllib.parse.parse_qs(parsed_path.query)
+
+        if "code" in params:
+            auth_code = params["code"][0]
+
+
+            token_data = {
+                "grant_type": "authorization_code",
+                "code": auth_code,
+                "redirect_uri": self.auth_helper.REDIRECT_URI,
+                "client_id": self.auth_helper.CLIENT_ID,
+                "code_verifier": self.auth_helper.CODE_VERIFIER,
+            }
+
+            response = requests.post(self.auth_helper.TOKEN_URL, data=token_data)
+            tokens = response.json()
+
+            if "access_token" in tokens:
+                self.auth_helper.access_token = tokens["access_token"]
+                self.auth_helper.refresh_token = tokens.get("refresh_token")
+                self.auth_helper.save_tokens()
+                self.auth_helper.login_complete = True
+            else:
+                print("\nError getting access token:", tokens)
+
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(b"<html><body><h1>Authentication Successful!</h1><p>You can close this tab.</p></body></html>")
+
+            threading.Thread(target=self.auth_helper.httpd.shutdown).start()
+
+        else:
+            self.send_response(400)
+            self.end_headers()
+            self.wfile.write(b"<html><body><h1>Error: No code received</h1></body></html>")
 
