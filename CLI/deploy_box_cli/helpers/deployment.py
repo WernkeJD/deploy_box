@@ -1,7 +1,7 @@
 import os
 import subprocess
-from helpers.auth import AuthHelper
-from helpers.menu import MenuHelper
+from deploy_box_cli.helpers.auth import AuthHelper
+from deploy_box_cli.helpers.menu import MenuHelper
 import requests
 
 class DeploymentHelper:

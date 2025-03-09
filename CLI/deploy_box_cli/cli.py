@@ -1,7 +1,10 @@
 import cmd
-from helpers.auth import AuthHelper
-from helpers.docker import DockerHelper
-from helpers.deployment import DeploymentHelper
+import os
+print(os.getcwd())  # This will print the current working directory
+
+from deploy_box_cli.helpers.auth import AuthHelper
+from deploy_box_cli.helpers.docker import DockerHelper
+from deploy_box_cli.helpers.deployment import DeploymentHelper
 
 class DeployCLI(cmd.Cmd):
     prompt = 'Deploy_Box >> '
@@ -45,5 +48,8 @@ class DeployCLI(cmd.Cmd):
         print("Exiting...")
         return True
 
-if __name__ == '__main__':
+def main():
     DeployCLI().cmdloop()
+
+if __name__ == '__main__':
+    main()

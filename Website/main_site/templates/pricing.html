@@ -30,6 +30,12 @@
           <a id="contact" href="/contact"
             class="block py-2 px-3 text-gray-900 rounded-sm hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-emerald-400 md:p-0 text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Contact</a>
         </li>
+        <li>
+            <a id='login' class="px-6 py-2 min-w-[120px] text-center text-white border border-white rounded hover:bg-emerald-400 hover:text-white active:bg-emerald-400 focus:outline-none focus:ring"
+            href="/accounts/login">
+            login
+          </a>
+        </li>
       </ul>
     </div>
   </div>
@@ -373,33 +379,50 @@
 
 
 
-<script id="handles navbar coloring">
-  const navbar = document.getElementById('navbar');
-  const navbarText = document.getElementById('navbar-text');
-  const home = document.getElementById('home');
-  const pricing = document.getElementById('pricing');
-  const contact = document.getElementById('contact');
+  <script>
+    const navbar = document.getElementById('navbar');
+    const navbarText = document.getElementById('navbar-text');
+    const stacks = document.getElementById('stacks');
+    const pricing = document.getElementById('pricing');
+    const contact = document.getElementById('contact');
+    const login = document.getElementById('login')
 
-  // Listen for scroll events
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 500) {
-      // When scrolling past 50px, change navbar background and text color
-      navbar.classList.add('bg-white', 'text-black');
-      navbarText.classList.add('text-black');
-      home.classList.add('text-black'); // Change text color to black
-      pricing.classList.add('text-black'); // Change text color to black
-      contact.classList.add('text-black'); // Change text color to black
-      navbar.classList.remove('bg-transparent', 'text-white');
-      navbarText.classList.remove('text-white')
-      home.classList.remove('text-white'); // Ensure text color is removed
-      pricing.classList.remove('text-white'); // Ensure text color is removed
-      contact.classList.remove('text-white'); // Ensure text color is removed
-    } else {
-      // When at the top, revert to original transparent background and white text
-      navbar.classList.remove('bg-white', 'text-black');
-      navbar.classList.add('bg-transparent', 'text-white');
-    }
-  });
-</script>
+    // Listen for scroll events
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 500) {
+        // When scrolling past 50px, change navbar background and text color
+        navbar.classList.add('bg-white', 'text-black');
+        navbarText.classList.add('text-black');
+        stacks.classList.add('text-black'); // Change text color to black
+        pricing.classList.add('text-black'); // Change text color to black
+        login.classList.add('text-black');
+        login.classList.add('border-black');
+        contact.classList.add('text-black'); // Change text color to black
+        navbar.classList.remove('bg-transparent', 'text-white');
+        navbarText.classList.remove('text-white')
+        stacks.classList.remove('text-white'); // Ensure text color is removed
+        pricing.classList.remove('text-white'); // Ensure text color is removed
+        contact.classList.remove('text-white'); // Ensure text color is removed
+        login.classList.remove('text-white');
+        login.classList.remove('border-white');
+      } else {
+        // When at the top, revert to original transparent background and white text
+        navbar.classList.remove('bg-white', 'text-black');
+        navbar.classList.add('bg-transparent', 'text-white');
+        navbarText.classList.remove('text-black');
+        navbarText.classList.add('text-white'); // Revert text color to white
+        stacks.classList.remove('text-black');
+        stacks.classList.add('text-white'); // Revert text color to white
+        pricing.classList.remove('text-black');
+        pricing.classList.add('text-white'); // Revert text color to white
+        contact.classList.remove('text-black');
+        contact.classList.add('text-white'); // Revert text color to white
+        login.classList.remove('text-black');
+        login.classList.add('text-white');
+        login.classList.remove('border-black');
+        login.classList.add('border-white');
+      }
+    });
+  </script>
 
 </html>
