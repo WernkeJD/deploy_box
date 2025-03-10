@@ -2,9 +2,9 @@ import cmd
 import os
 print(os.getcwd())  # This will print the current working directory
 
-from deploy_box_cli.helpers.auth import AuthHelper
-from deploy_box_cli.helpers.docker import DockerHelper
-from deploy_box_cli.helpers.deployment import DeploymentHelper
+from helpers.auth import AuthHelper
+from helpers.docker import DockerHelper
+from helpers.deployment import DeploymentHelper
 
 class DeployCLI(cmd.Cmd):
     prompt = 'Deploy_Box >> '

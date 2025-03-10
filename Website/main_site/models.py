@@ -32,6 +32,7 @@ class Deployments(models.Model):
 class DeploymentFrontend(models.Model):
     deployment = models.ForeignKey(Deployments, on_delete=models.CASCADE)
     url = models.URLField()
+    image_url = models.URLField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -40,6 +41,7 @@ class DeploymentFrontend(models.Model):
 class DeploymentBackend(models.Model):
     deployment = models.ForeignKey(Deployments, on_delete=models.CASCADE)
     url = models.URLField()
+    image_url = models.URLField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -48,6 +50,7 @@ class DeploymentBackend(models.Model):
 class DeploymentDatabase(models.Model):
     deployment = models.ForeignKey(Deployments, on_delete=models.CASCADE)
     uri = models.URLField()
+    project_id = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

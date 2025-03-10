@@ -1,29 +1,31 @@
 from flask import Blueprint, jsonify, request, jsonify, send_file
 from mongoDBUtils import deploy_mongodb
-from GCPUtils import deploy_service
+from GCPUtils import deploy_service, refresh_service, get_blob
 import subprocess
 import tarfile
-from google.cloud import storage
 import io
 import os
+import time
 
 api = Blueprint('api', __name__)
 
 IMAGE_BASE_URL = "us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/"
 BUCKET_NAME = "deploy_box_bucket"
 
-storage_client = storage.Client()
-
 @api.route('/')
 def home():
     return jsonify({'message': 'Welcome to the API!'})
 
 def deploy_mern_stack(frontend_image: str, backend_image: str, deployment_id: str):
-    mongodb_uri = deploy_mongodb()
+    mongodb_uri, project_id = deploy_mongodb()
     backend_url = deploy_service(f"backend-{deployment_id}", backend_image, {"MONGO_URI": mongodb_uri})
     frontend_url = deploy_service(f"frontend-{deployment_id}", frontend_image, {"REACT_APP_BACKEND_URL": backend_url})
     
-    return frontend_url, backend_url, mongodb_uri
+    return frontend_url, backend_url, mongodb_uri, project_id
+
+def refresh_mern_stack(frontend_image: str, backend_image: str, deployment_id: str):
+    refresh_service(f"backend-{deployment_id}", backend_image)
+    refresh_service(f"frontend-{deployment_id}", frontend_image)
 
 @api.route("/api/code", methods=["POST"])
 def push_code():
@@ -62,15 +64,19 @@ def push_code():
     backend_dir = "./extracted_files/backend"
    
     # Build and push the Docker images
-    build_and_push_docker_image(frontend_dir, f"{IMAGE_BASE_URL}frontend-{deployment_id}")
-    build_and_push_docker_image(backend_dir, f"{IMAGE_BASE_URL}backend-{deployment_id}")
+    curr_time = int(time.time())
+    frontend_image_tag = f"{IMAGE_BASE_URL}frontend-{deployment_id}:{curr_time}"
+    backend_image_tag = f"{IMAGE_BASE_URL}backend-{deployment_id}:{curr_time}"
+
+    build_and_push_docker_image(frontend_dir, frontend_image_tag)
+    build_and_push_docker_image(backend_dir, backend_image_tag)
 
     frontend_url = None
     backend_url = None
     database_url = None
 
     if stack_type == "MERN":
-        frontend_url, backend_url, database_url = deploy_mern_stack(f"{IMAGE_BASE_URL}frontend-{deployment_id}", f"{IMAGE_BASE_URL}backend-{deployment_id}", deployment_id)
+        frontend_url, backend_url, database_url, project_id = deploy_mern_stack(frontend_image_tag, backend_image_tag, deployment_id)
     else:
         print("MEAN stack deployment not implemented yet")
 
@@ -80,8 +86,64 @@ def push_code():
 
     return jsonify({
         "frontend_id": frontend_url,
+        "frontend_image": frontend_image_tag,
         "backend_id": backend_url,
-        "database_id": database_url
+        "backend_image": backend_image_tag,
+        "database_uri": database_url,
+        "project_id": project_id,
+        })
+
+@api.route("/api/code", methods=["PATCH"])
+def patch_code():
+    content_length = request.content_length
+    print(f"Attempted content length: {content_length} bytes")
+    
+    # Can be MERN or MEAN
+    stack_type = request.form.get("stack-type")
+    print(f"Stack type: {stack_type}")
+    print(f"Deployment ID: {request.form.get('deployment-id')}")
+    deployment_id = request.form.get("deployment-id")
+
+    if not stack_type:
+        return jsonify({"error": "Stack type not provided"}), 400
+    
+    if not deployment_id:
+        return jsonify({"error": "Deployment ID not provided"}), 400
+
+    if stack_type not in ["MERN", "MEAN"]:
+        return jsonify({"error": "Invalid stack type"}), 400
+    
+    file = request.files.get("file")
+
+    if not file:
+        return jsonify({"error": "No file provided"}), 400
+
+    # Save the file to the local filesystem
+    file.save("uploaded_file.tar")
+
+    # Extract the tar file to a specific directory
+    with tarfile.open("uploaded_file.tar", "r") as tar:
+        tar.extractall("./extracted_files")
+
+    # Define the files to be included in the Docker image
+    frontend_dir = "./extracted_files/frontend"
+    backend_dir = "./extracted_files/backend"
+   
+    # Build and push the Docker images
+    curr_time = int(time.time())
+    frontend_image_tag = f"{IMAGE_BASE_URL}frontend-{deployment_id}:{curr_time}"
+    backend_image_tag = f"{IMAGE_BASE_URL}backend-{deployment_id}:{curr_time}"
+
+    build_and_push_docker_image(frontend_dir, frontend_image_tag)
+    build_and_push_docker_image(backend_dir, backend_image_tag)
+
+    if stack_type == "MERN":
+        refresh_mern_stack(frontend_image_tag, backend_image_tag, deployment_id)
+    else:
+        print("MEAN stack deployment not implemented yet")
+
+    return jsonify({
+        "message": "Successfully updated deployment",
         })
 
 def build_and_push_docker_image(directory, image_name):
@@ -104,8 +166,7 @@ def pull_code(source_code: str):
     file_name = f"{source_code}.tar"
 
     # Access the GCS bucket
-    bucket = storage_client.bucket(BUCKET_NAME)
-    blob = bucket.blob(file_name)
+    blob = get_blob(file_name)
 
     # Check if the blob exists in the bucket
     if not blob.exists():

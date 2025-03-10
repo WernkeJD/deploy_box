@@ -157,7 +157,7 @@ def deploy_mongodb():
 
     # request_helper(f"groups/{project_id}", "PATCH", project_data)
 
-    return connection_string
+    return connection_string, project_id
 
 if __name__ == '__main__':
     print(deploy_mongodb())

@@ -1,8 +1,7 @@
 import os
 import subprocess
-from deploy_box_cli.helpers.auth import AuthHelper
-from deploy_box_cli.helpers.menu import MenuHelper
-import requests
+from helpers.auth import AuthHelper
+from helpers.menu import MenuHelper
 
 class DeploymentHelper:
     def __init__(self, auth: AuthHelper):
@@ -72,8 +71,6 @@ class DeploymentHelper:
     def upload_source_code(self):
         deployment_id = self.get_available_deployments()
 
-        print(f"Selected deployment: {deployment_id}")
-
         # Cancel the operation
         if deployment_id == -1:
             print("Operation cancelled.")
@@ -96,13 +93,21 @@ class DeploymentHelper:
 
             # Open the file in binary mode and stream it
             files = {
-                'file': open('./MERN.tar', 'rb')  # Replace 'your_file.tar' with your .tar file path
+                'file': open('./MERN.tar', 'rb')
             }
 
             self.auth.request_api('POST', 'upload_deployment', data=data, files=files, stream=True)
 
-            return
-        
-        # Deploy the selected deployment
-        print("Deploying selected deployment...")
-        
+
+         # Upload to existing deployment
+        else:
+            data = {
+                'deployment-id': deployment_id
+            }
+
+            # Open the file in binary mode and stream it
+            files = {
+                'file': open('./MERN.tar', 'rb')
+            }
+
+            self.auth.request_api('PATCH', 'patch_deployment', data=data, files=files, stream=True)

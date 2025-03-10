@@ -12,7 +12,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 import requests
-import json
+
+DEPLOY_BOX_API_URL = 'http://34.68.6.54:5000/api'
 
 # Basic Routes
 def home(request):
@@ -146,21 +147,68 @@ def upload_deployment(request):
 
     # Stream the file to the destination API
     try:
-        response = requests.post('http://localhost:5000/api/code', files=request.FILES, data=json_data, stream=True)
+        response = requests.post(f'{DEPLOY_BOX_API_URL}/code', files=request.FILES, data=json_data, stream=True)
         if response.status_code != 200:
             return Response(response.json(), status=response.status_code)
 
         # Create the frontend, backend, and database records in the database
         deployment_data = response.json()
-        DeploymentFrontend.objects.create(deployment=deployment, url=deployment_data['frontend_id'])
-        DeploymentBackend.objects.create(deployment=deployment, url=deployment_data['backend_id'])
-        DeploymentDatabase.objects.create(deployment=deployment, uri=deployment_data['database_uri'])
+        DeploymentFrontend.objects.create(deployment=deployment, url=deployment_data['frontend_id'], image_url=deployment_data['frontend_image'])
+        DeploymentBackend.objects.create(deployment=deployment, url=deployment_data['backend_id'], image_url=deployment_data['backend_image'])
+        DeploymentDatabase.objects.create(deployment=deployment, uri=deployment_data['database_uri'], project_id=deployment_data['project_id'])
 
         return Response({'message': 'Deployment added successfully'}, status=status.HTTP_201_CREATED)
 
     except requests.RequestException as e:
         return Response({'error': f'Error communicating with destination API: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def patch_deployment(request):
+    user = request.user
+    deployment_id = request.data.get('deployment-id')
+    tar_file = request.FILES.get('file')
+
+    if not deployment_id:
+        return Response({'error': 'Deployment ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
     
+    if not tar_file:
+        return Response({'error': 'File is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Find the deployment
+    try:
+        deployment = Deployments.objects.get(id=deployment_id, user=user)
+    except Deployments.DoesNotExist:
+        return Response({'error': 'Deployment not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    deploymentfrontend = DeploymentFrontend.objects.get(deployment=deployment)
+    deploymentbackend = DeploymentBackend.objects.get(deployment=deployment)
+    deploymentdatabase = DeploymentDatabase.objects.get(deployment=deployment)
+
+    json_data = {
+        'deployment-id': deployment_id,
+        'stack-type': deployment.stack.type,
+        'frontend-url': deploymentfrontend.url,
+        'frontend-image': deploymentfrontend.image_url,
+        'backend-url': deploymentbackend.url,
+        'backend-image': deploymentbackend.image_url,
+        'database-uri': deploymentdatabase.uri,
+        'project-id': deploymentdatabase.project_id
+    }
+
+    # Stream the file to the destination API
+    try:
+        response = requests.patch(f'{DEPLOY_BOX_API_URL}/api/code', files=request.FILES, data=json_data, stream=True)
+        if response.status_code != 200:
+            return Response(response.json(), status=response.status_code)
+
+        return Response({'message': 'Deployment updated successfully'}, status=status.HTTP_201_CREATED)
+
+    except requests.RequestException as e:
+        return Response({'error': f'Error communicating with destination API: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -169,7 +217,7 @@ def download_stack(request, stack_id):
 
     stack = Stacks.objects.get(id=stack_id, user=user)
 
-    source_code = requests.get(f'http://localhost:5000/api/pull-code/{stack.type}')
+    source_code = requests.get(f'{DEPLOY_BOX_API_URL}/code/{stack.type}')
     if source_code.status_code != 200:
         return Response({'error': 'Failed to download stack'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
