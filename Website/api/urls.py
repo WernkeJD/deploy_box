@@ -10,6 +10,7 @@ urlpatterns = [
         views.get_available_deployments,
         name="get_available_deployments",
     ),
-    path("upload_deployment", views.upload_deployment, name="upload_deployment"),
-    path("patch_deployment", views.patch_deployment, name="patch_deployment"),
+    path("upload_deployment/", views.upload_deployment, name="upload_deployment"),
+    path("patch_deployment/", views.patch_deployment, name="patch_deployment"),
+    path("get_deployment_details/<int:deployment_id>/", views.get_deployment_details, name="get_deployment_details"),
 ]

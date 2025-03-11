@@ -14,6 +14,8 @@ def oauth_required(view_func):
         # Check if the access token is available and valid
         access_token = get_access_token_from_session(request)
 
+        print(f"Access Token: {access_token}")
+
         if not access_token:
             return redirect(f"{settings.HOST}/accounts/login/?next={request.path}")
 

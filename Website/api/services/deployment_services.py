@@ -7,6 +7,8 @@ from ..models import (
 )
 import requests
 from rest_framework import status
+from rest_framework.response import Response
+from pymongo import MongoClient
 
 
 # Function to upload a new deployment
@@ -132,3 +134,29 @@ def download_stack(user, stack_id):
         return {
             "error": f"Error downloading stack: {str(e)}"
         }, status.HTTP_500_INTERNAL_SERVER_ERROR
+
+def delete_deployment(user, deployment_id):
+    # TODO: Implement the delete deployment logic
+    pass
+
+def get_deployment_cost(request, deployment_id):
+    user = request.user
+    # deployment = Deployments.objects.filter(id=deployment_id, user=user).first()
+    # if not deployment:
+    #     return Response({"error": "Deployment not found."}, status.HTTP_404_NOT_FOUND)
+    
+    # deployment_backend = DeploymentBackend.objects.filter(deployment=deployment).first()
+
+    # if not deployment_backend:
+    #     return Response({"error": "Deployment backend not found."}, status.HTTP_404_NOT_FOUND)
+    
+    # client = MongoClient(deployment_backend.uri)
+    client = MongoClient("mongodb+srv://deployBoxAdmin:Dramatic23@cluster0.yjaoi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+
+    db_id = '1'
+
+    db = client[f'db-{db_id}']
+
+    stats = db.command('dbstats')
+
+    return Response({"data": stats}, status.HTTP_200_OK)

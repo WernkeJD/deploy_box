@@ -10,11 +10,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework import status
-from .services import stack_services
+from .services import stack_services, deployment_services
 import requests
 
-# DEPLOY_BOX_API_URL = "http://34.68.6.54:5000/api"
-DEPLOY_BOX_API_URL = "http://localhost:5000/api"
+DEPLOY_BOX_API_URL = "http://34.68.6.54:5000/api"
+# DEPLOY_BOX_API_URL = "http://localhost:5000/api"
 
 
 @api_view(["GET"])
@@ -184,3 +184,9 @@ def patch_deployment(request):
             {"error": f"Error communicating with destination API: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_deployment_details(request: Request, deployment_id: str):
+    return deployment_services.get_deployment_cost(request, deployment_id)

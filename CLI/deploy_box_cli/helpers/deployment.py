@@ -10,19 +10,19 @@ class DeploymentHelper:
 
     def get_available_stacks(self):
         """Get a list of stacks for the user"""
-        response = self.auth.request_api("GET", "get_available_stacks")
+        response = self.auth.request_api("GET", "stacks")
 
         if response.status_code != 200:
             print(f"Error: {response.json()['error']}")
             return
 
-        data = response.json()
-        options = [
+        return response.json().get("data", [])
+
+        data_options = [
             f"{stack['variant']} {stack['type']} : {stack['version']}" for stack in data
         ]
-        options.append("Cancel")
 
-        selected_idx, _ = MenuHelper.menu(options, "Select a stack to deploy:")
+        selected_idx, _ = MenuHelper.menu(data_options, "Select a stack to deploy:")
 
         return data[selected_idx]["id"], data[selected_idx]["type"]
 
@@ -62,60 +62,97 @@ class DeploymentHelper:
             # print(f"Error: {response.text}")
             return
 
-        data = response.json()
+        return response.json()
 
-        options = [f"{deployment['name']}" for deployment in data]
-        options.append("Upload new deployment")
-        options.append("Cancel")
-
-        selected_idx, _ = MenuHelper.menu(options, "Select a deployment to deploy:")
-
-        if selected_idx >= len(data):
-            selected_idx = selected_idx - len(options)
-
-        return data[selected_idx]["id"] if selected_idx >= 0 else selected_idx
 
     def upload_source_code(self):
-        deployment_id = self.get_available_deployments()
+        compressed_file = self.compress_source_code()
+
+        return
+        available_deployments = self.get_available_deployments()
+
+        data_options = [f"{deployment['name']}" for deployment in available_deployments]
+        extra_options = ["Upload new deployment"]
+
+        selected_idx, _ = MenuHelper.menu(data_options=data_options, extra_options=extra_options, prompt="Select a deployment to deploy:")
 
         # Cancel the operation
-        if deployment_id == -1:
+        if selected_idx == -1:
             print("Operation cancelled.")
 
         # Upload new deployment
-        elif deployment_id == -2:
+        elif selected_idx == -2:
             print("Uploading new deployment...")
             deployment_name = input("Enter deployment name: ")
-            deployment_stack_id, _ = self.get_available_stacks()
 
+            # TODO: Validate deployment name for special characters
             if not deployment_name:
                 print("Error: Deployment name is required.")
                 return
+        
 
-            data = {"name": deployment_name, "stack_id": deployment_stack_id}
+            available_stacks = self.get_available_stacks()
+
+            data_options = [
+                f"{stack['variant']} {stack['type']} : {stack['version']}"
+                for stack in available_stacks
+            ]
+            selected_idx, _ = MenuHelper.menu(
+                data_options=data_options,
+                extra_options=[],
+                prompt="Select a stack to deploy:",
+            )
+
+            if selected_idx == -1:
+                print("Operation cancelled.")
+                return
+            
+
+            deployment_stack_id = available_stacks[selected_idx]["id"]            
+
+            deployment_data = {"name": deployment_name, "stack_id": deployment_stack_id}
 
             # Open the file in binary mode and stream it
             compressed_file = self.compress_source_code()
             files = {"file": open("./MERN.tar", "rb")}
 
             self.auth.request_api(
-                "POST", "upload_deployment", data=data, files=files, stream=True
+                "POST", "upload_deployment", data=deployment_data, files=files, stream=True
             )
 
         # Upload to existing deployment
         else:
-            data = {"deployment-id": deployment_id}
+            deployment_id = available_deployments[selected_idx]["id"]
+            deployment_data = {"deployment-id": deployment_id}
 
             # Open the file in binary mode and stream it
             files = {"file": open("./MERN.tar", "rb")}
 
             self.auth.request_api(
-                "PATCH", "patch_deployment", data=data, files=files, stream=True
+                "PATCH", "patch_deployment", data=deployment_data, files=files, stream=True
             )
 
     def compress_source_code(self):
         """Compress the source code into a tar file."""
         current_working_dir = os.getcwd()
+
+        # TODO: Make sure the user can compress their source code from the cli
+
+        # Check if the directory contains a frontend directory  
+        if not os.path.exists(os.path.join(current_working_dir, "frontend")):
+            print("Error: No frontend directory found.")
+            return
+        
+        # Check if the directory contains a backend directory
+        if not os.path.exists(os.path.join(current_working_dir, "backend")):
+            print("Error: No backend directory found.")
+            return
+        
+        # Check if the directory contains a database directory
+        if not os.path.exists(os.path.join(current_working_dir, "database")):
+            print("Error: No database directory found.")
+            return
+
         stack_type = os.path.basename(current_working_dir)
         file_name = os.path.join(current_working_dir, f"{stack_type}.tar")
         exclude_files = [
@@ -138,5 +175,7 @@ class DeploymentHelper:
                 cwd=current_working_dir,
             )
             print("Compression complete!")
+
+            return file_name
         except subprocess.CalledProcessError as e:
             print(f"Error compressing files: {e}")

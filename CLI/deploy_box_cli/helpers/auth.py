@@ -17,8 +17,8 @@ class AuthHelper:
     API_URL = "http://127.0.0.1:8000"
     AUTHORIZATION_URL = f"{API_URL}/accounts/o/authorize/"
     TOKEN_URL = f"{API_URL}/accounts/o/token/"
-    CLIENT_ID = "G6d1r65SOzEUKp9iKZYQnwgvTOMHj90NGVrJmZ8X"
-    REDIRECT_URI = "http://localhost:8080/callback"
+    CLIENT_ID = "QQZwAMHo6G7kJPzI9A4OJxtIkhR5gc8rsEF9Vsgk"
+    REDIRECT_URI = "http://127.0.0.1:8080/callback"
     SERVICE_NAME = "oauth-cli"
 
     def __init__(self):
