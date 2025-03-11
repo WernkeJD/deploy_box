@@ -1,5 +1,5 @@
 {
-  "name": "deploy_box_djanog_init_app",
+  "name": "core",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",

@@ -10,12 +10,13 @@ import pkce
 import random
 import string
 
+
 class AuthHelper:
     """Handles OAuth 2.0 PKCE authentication flow, including token storage and retrieval."""
 
     API_URL = "http://127.0.0.1:8000"
-    AUTHORIZATION_URL = f"{API_URL}/o/authorize/"
-    TOKEN_URL = f"{API_URL}/o/token/"
+    AUTHORIZATION_URL = f"{API_URL}/accounts/o/authorize/"
+    TOKEN_URL = f"{API_URL}/accounts/o/token/"
     CLIENT_ID = "G6d1r65SOzEUKp9iKZYQnwgvTOMHj90NGVrJmZ8X"
     REDIRECT_URI = "http://localhost:8080/callback"
     SERVICE_NAME = "oauth-cli"
@@ -37,7 +38,9 @@ class AuthHelper:
 
     def start_callback_server(self):
         """Starts a local web server to handle the OAuth callback."""
-        handler = lambda *args, **kwargs: OAuthHandler(self, *args, **kwargs)  # Pass `self` to handler
+        handler = lambda *args, **kwargs: OAuthHandler(
+            self, *args, **kwargs
+        )  # Pass `self` to handler
         with socketserver.TCPServer(("localhost", 8080), handler) as self.httpd:
             self.httpd.RequestHandlerClass.log_message = lambda *args, **kwargs: None
             self.httpd.serve_forever()
@@ -100,26 +103,46 @@ class AuthHelper:
         else:
             print("\nError refreshing access token:", tokens)
 
-    def request_api(self, method, endpoint, json=None, data=None, files=None, stream=False):
+    def request_api(
+        self, method, endpoint, json=None, data=None, files=None, stream=False
+    ):
         """Make an authenticated request to the API."""
         headers = {"Authorization": f"Bearer {self.access_token}"}
-        response = requests.request(method, f"{self.API_URL}/api/{endpoint}", headers=headers, json=json, data=data, files=files, stream=stream)
+        response = requests.request(
+            method,
+            f"{self.API_URL}/api/{endpoint}",
+            headers=headers,
+            json=json,
+            data=data,
+            files=files,
+            stream=stream,
+        )
 
         if response.status_code == 401:
             print("Access token expired. Refreshing token...")
             self.refresh_access_token()
             headers["Authorization"] = f"Bearer {self.access_token}"
-            response = requests.request(method, f"{self.API_URL}/api/{endpoint}", headers=headers, json=json, data=data, files=files, stream=stream)
+            response = requests.request(
+                method,
+                f"{self.API_URL}/api/{endpoint}",
+                headers=headers,
+                json=json,
+                data=data,
+                files=files,
+                stream=stream,
+            )
 
         return response
-    
+
     def save_tokens(self):
         """Securely store tokens in the system keychain."""
         keyring.set_password(self.SERVICE_NAME, "access_token", self.access_token)
         keyring.set_password(self.SERVICE_NAME, "refresh_token", self.refresh_token)
 
+
 class OAuthHandler(http.server.SimpleHTTPRequestHandler):
     """Handles OAuth 2.0 callback."""
+
     def __init__(self, auth_helper: AuthHelper, *args, **kwargs):
         self.auth_helper = auth_helper
         super().__init__(*args, **kwargs)
@@ -131,7 +154,6 @@ class OAuthHandler(http.server.SimpleHTTPRequestHandler):
 
         if "code" in params:
             auth_code = params["code"][0]
-
 
             token_data = {
                 "grant_type": "authorization_code",
@@ -155,12 +177,15 @@ class OAuthHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-type", "text/html")
             self.end_headers()
-            self.wfile.write(b"<html><body><h1>Authentication Successful!</h1><p>You can close this tab.</p></body></html>")
+            self.wfile.write(
+                b"<html><body><h1>Authentication Successful!</h1><p>You can close this tab.</p></body></html>"
+            )
 
             threading.Thread(target=self.auth_helper.httpd.shutdown).start()
 
         else:
             self.send_response(400)
             self.end_headers()
-            self.wfile.write(b"<html><body><h1>Error: No code received</h1></body></html>")
-
+            self.wfile.write(
+                b"<html><body><h1>Error: No code received</h1></body></html>"
+            )

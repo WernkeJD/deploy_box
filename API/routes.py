@@ -7,31 +7,41 @@ import io
 import os
 import time
 
-api = Blueprint('api', __name__)
+api = Blueprint("api", __name__)
 
 IMAGE_BASE_URL = "us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/"
 BUCKET_NAME = "deploy_box_bucket"
 
-@api.route('/')
+
+@api.route("/")
 def home():
-    return jsonify({'message': 'Welcome to the API!'})
+    return jsonify({"message": "Welcome to the API!"})
+
 
 def deploy_mern_stack(frontend_image: str, backend_image: str, deployment_id: str):
-    mongodb_uri, project_id = deploy_mongodb()
-    backend_url = deploy_service(f"backend-{deployment_id}", backend_image, {"MONGO_URI": mongodb_uri})
-    frontend_url = deploy_service(f"frontend-{deployment_id}", frontend_image, {"REACT_APP_BACKEND_URL": backend_url})
-    
-    return frontend_url, backend_url, mongodb_uri, project_id
+    mongodb_uri = deploy_mongodb(deployment_id)
+    backend_url = deploy_service(
+        f"backend-{deployment_id}", backend_image, {"MONGO_URI": mongodb_uri}
+    )
+    frontend_url = deploy_service(
+        f"frontend-{deployment_id}",
+        frontend_image,
+        {"REACT_APP_BACKEND_URL": backend_url},
+    )
+
+    return frontend_url, backend_url, mongodb_uri
+
 
 def refresh_mern_stack(frontend_image: str, backend_image: str, deployment_id: str):
     refresh_service(f"backend-{deployment_id}", backend_image)
     refresh_service(f"frontend-{deployment_id}", frontend_image)
 
+
 @api.route("/api/code", methods=["POST"])
 def push_code():
     content_length = request.content_length
     print(f"Attempted content length: {content_length} bytes")
-    
+
     # Can be MERN or MEAN
     stack_type = request.form.get("stack-type")
     print(f"Stack type: {stack_type}")
@@ -40,13 +50,13 @@ def push_code():
 
     if not stack_type:
         return jsonify({"error": "Stack type not provided"}), 400
-    
+
     if not deployment_id:
         return jsonify({"error": "Deployment ID not provided"}), 400
 
     if stack_type not in ["MERN", "MEAN"]:
         return jsonify({"error": "Invalid stack type"}), 400
-    
+
     file = request.files.get("file")
 
     if not file:
@@ -62,7 +72,7 @@ def push_code():
     # Define the files to be included in the Docker image
     frontend_dir = "./extracted_files/frontend"
     backend_dir = "./extracted_files/backend"
-   
+
     # Build and push the Docker images
     curr_time = int(time.time())
     frontend_image_tag = f"{IMAGE_BASE_URL}frontend-{deployment_id}:{curr_time}"
@@ -76,7 +86,9 @@ def push_code():
     database_url = None
 
     if stack_type == "MERN":
-        frontend_url, backend_url, database_url, project_id = deploy_mern_stack(frontend_image_tag, backend_image_tag, deployment_id)
+        frontend_url, backend_url, database_url = deploy_mern_stack(
+            frontend_image_tag, backend_image_tag, deployment_id
+        )
     else:
         print("MEAN stack deployment not implemented yet")
 
@@ -84,20 +96,22 @@ def push_code():
     print(f"Backend URL: {backend_url}")
     print(f"Database URL: {database_url}")
 
-    return jsonify({
-        "frontend_id": frontend_url,
-        "frontend_image": frontend_image_tag,
-        "backend_id": backend_url,
-        "backend_image": backend_image_tag,
-        "database_uri": database_url,
-        "project_id": project_id,
-        })
+    return jsonify(
+        {
+            "frontend_id": frontend_url,
+            "frontend_image": frontend_image_tag,
+            "backend_id": backend_url,
+            "backend_image": backend_image_tag,
+            "database_uri": database_url,
+        }
+    )
+
 
 @api.route("/api/code", methods=["PATCH"])
 def patch_code():
     content_length = request.content_length
     print(f"Attempted content length: {content_length} bytes")
-    
+
     # Can be MERN or MEAN
     stack_type = request.form.get("stack-type")
     print(f"Stack type: {stack_type}")
@@ -106,13 +120,13 @@ def patch_code():
 
     if not stack_type:
         return jsonify({"error": "Stack type not provided"}), 400
-    
+
     if not deployment_id:
         return jsonify({"error": "Deployment ID not provided"}), 400
 
     if stack_type not in ["MERN", "MEAN"]:
         return jsonify({"error": "Invalid stack type"}), 400
-    
+
     file = request.files.get("file")
 
     if not file:
@@ -128,7 +142,7 @@ def patch_code():
     # Define the files to be included in the Docker image
     frontend_dir = "./extracted_files/frontend"
     backend_dir = "./extracted_files/backend"
-   
+
     # Build and push the Docker images
     curr_time = int(time.time())
     frontend_image_tag = f"{IMAGE_BASE_URL}frontend-{deployment_id}:{curr_time}"
@@ -142,9 +156,12 @@ def patch_code():
     else:
         print("MEAN stack deployment not implemented yet")
 
-    return jsonify({
-        "message": "Successfully updated deployment",
-        })
+    return jsonify(
+        {
+            "message": "Successfully updated deployment",
+        }
+    )
+
 
 def build_and_push_docker_image(directory, image_name):
     # Convert relative directory to absolute path
@@ -157,6 +174,7 @@ def build_and_push_docker_image(directory, image_name):
 
     # Push the Docker image
     subprocess.run(["docker", "push", image_name], check=True)
+
 
 @api.route("/api/code/<source_code>", methods=["GET"])
 def pull_code(source_code: str):
@@ -179,5 +197,3 @@ def pull_code(source_code: str):
 
     # Send the file to the user
     return send_file(file_stream, as_attachment=True, download_name=file_name)
-
-

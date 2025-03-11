@@ -4,12 +4,19 @@ import requests
 import time
 import uuid
 import hashlib
+from pymongo import MongoClient
+
 dotenv.load_dotenv()
 
 MONGODB_TOKEN = os.environ.get("MONGODB_TOKEN")
 MONGODB_ORG_ID = os.environ.get("MONGODB_ORG_ID")
+MONGODB_PROJECT_ID = os.environ.get("MONGODB_PROJECT_ID")
 MONGODB_CLIENT_ID = os.environ.get("MONGODB_CLIENT_ID")
 MONGODB_CLIENT_SECRET = os.environ.get("MONGODB_CLIENT_SECRET")
+MONGODB_CONNECTION_STRING = os.environ.get("MONGODB_CONNECTION_STRING")
+
+client = MongoClient(MONGODB_CONNECTION_STRING)
+
 
 def get_mongodb_token():
     global MONGODB_TOKEN
@@ -18,12 +25,8 @@ def get_mongodb_token():
         return MONGODB_TOKEN
 
     url = "https://cloud.mongodb.com/api/oauth/token"
-    payload = {
-        "grant_type": "client_credentials"
-    }
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
+    payload = {"grant_type": "client_credentials"}
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
     auth = (MONGODB_CLIENT_ID, MONGODB_CLIENT_SECRET)
     response = requests.post(url, data=payload, headers=headers, auth=auth)
     response.raise_for_status()
@@ -35,130 +38,81 @@ def get_mongodb_token():
 def request_helper(url, method="GET", data=None):
     global MONGODB_TOKEN
 
-    url = f"https://cloud.mongodb.com/api/atlas/v2/{url}"
+    url = f"https://cloud.mongodb.com/api/atlas/v2{url}"
 
     while True:
         headers = {
             "Authorization": f"Bearer {MONGODB_TOKEN}",
             "Content-Type": "application/json",
-            "Accept": "application/vnd.atlas.2023-01-01+json"
+            "Accept": "application/vnd.atlas.2023-01-01+json",
         }
-            
-        try:
-            response = None
-            if method == "GET":
-                response = requests.get(url, headers=headers)
-            elif method == "POST":
-                response = requests.post(url, headers=headers, json=data)
-            elif method == "PUT":
-                response = requests.put(url, headers=headers, json=data)
-            elif method == "DELETE":
-                response = requests.delete(url, headers=headers)
-            elif method == "PATCH":
-                response = requests.patch(url, headers=headers, json=data)
 
-            if response.status_code == 401:
-                MONGODB_TOKEN = None
-                get_mongodb_token()
-                continue
-            elif response.ok:
-                return response.json()
-            else:
-                response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            return err
-        except Exception as e:
-            return e
+        response = None
+        if method == "GET":
+            response = requests.get(url, headers=headers)
+        elif method == "POST":
+            response = requests.post(url, headers=headers, json=data)
+        elif method == "PUT":
+            response = requests.put(url, headers=headers, json=data)
+        elif method == "DELETE":
+            response = requests.delete(url, headers=headers)
+        elif method == "PATCH":
+            response = requests.patch(url, headers=headers, json=data)
 
-
-def deploy_mongodb():
-    # Get all projects
-    projects = request_helper("groups")
-
-    if (isinstance(projects, requests.exceptions.HTTPError)):
-        print(projects)
-        return {"error": "Error fetching projects"}
-
-    project_id = None
-    cluster_connection_uri = None
-
-    for project in projects["results"]:
-        project_name = project["name"]
-
-        # Skip if the project name doesn't contain the placeholder
-        # placeholder_text = "DEPLOY-BOX-PROJECT-PLACEHOLDER"
-        placeholder_text = "97ecc974-f47c-49f2-96bb-b1371eec12af" # For testing
-        if placeholder_text not in project_name:
+        if response.status_code == 401:
+            MONGODB_TOKEN = None
+            get_mongodb_token()
             continue
 
+        elif response.ok:
+            return response.json()
 
-        clusters = request_helper(f"groups/{project['id']}/clusters")
+        return response
 
-        # Skip if the cluster doesn't have a cluster
-        if clusters["totalCount"] == 0:
-            continue
 
-        for cluster in clusters["results"]:
-            if "Cluster0" not in cluster["name"]:
-                continue
+def deploy_mongodb(deployment_id: str):
+    database_name = f"db-{deployment_id}"
+    username = f"deployBoxUser-{deployment_id}"
+    password = hashlib.sha256(str(time.time()).encode()).hexdigest()[:12]
 
-            cluster_connection_uri = cluster["connectionStrings"]["standardSrv"]
-            cluster_connection_uri = cluster_connection_uri.replace("mongodb+srv://", "")
-            break
-        
-        project_id = project["id"]
-        break
+    db = client[database_name]
 
-    
-    if not project_id or not cluster_connection_uri:
-        return {"error": "No empty projects available"}
-    
-    # Set network access to all
-    network_data = [{
-        "ipAddress": "0.0.0.0/0",
-        "comment": "Allow access from anywhere"
-        }]
-    
-    request_helper(f"groups/{project_id}/accessList", "POST", network_data)
+    # Get the database stats
+    stats = db.command("dbstats")
 
-    # TODO: Create user role to prevent unauthorized access
+    # Print the stats
+    print(stats.get("storageSize"))
 
-    # Create a new database user
-    user_password = hashlib.sha256(str(time.time()).encode()).hexdigest()[:12]
-    user_data = {
-            "groupId": project_id,
+    # Check if user already exists
+    response = request_helper(
+        f"/groups/{MONGODB_PROJECT_ID}/databaseUsers/admin/{username}", "GET"
+    )
+
+    if isinstance(response, requests.models.Response):
+        if response.status_code != 404:
+            raise response
+
+        # Create a new database user
+        user_data = {
+            "groupId": MONGODB_PROJECT_ID,
             "databaseName": "admin",
-            "username": "deployBoxUser",
-            "password": user_password,
-            "roles": [
-                {
-                    "databaseName": "admin",
-                    "roleName": "atlasAdmin"
-                }
-            ]
+            "username": username,
+            "password": password,
+            "roles": [{"databaseName": database_name, "roleName": "readWrite"}],
+            "scopes": [{"name": "cluster0", "type": "CLUSTER"}],
         }
-    
-    response = request_helper(f"groups/{project_id}/databaseUsers", "POST", user_data)
 
-    if (isinstance(response, requests.exceptions.HTTPError)):
-        # If the user already exists, update the user
-        if response.response.status_code == 409:
-            request_helper(f"groups/{project_id}/databaseUsers/admin/deployBoxUser", "PATCH", user_data)
-        else:
-            return {"error": "Error creating database user"}
+        response = request_helper(
+            f"/groups/{MONGODB_PROJECT_ID}/databaseUsers", "POST", user_data
+        )
 
-    connection_string = f"mongodb+srv://deployBoxUser:{user_password}@{cluster_connection_uri}/?retryWrites=true&w=majority&appName=Cluster0"
+        print(response)
 
-    # Rename the project
-    project_name = str(uuid.uuid4())
-    project_data = {
-        "name": project_name
-    }
+    connection_string = f"mongodb+srv://{username}:{password}@cluster0.yjaoi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
-    # request_helper(f"groups/{project_id}", "PATCH", project_data)
+    return connection_string
 
-    return connection_string, project_id
 
-if __name__ == '__main__':
-    print(deploy_mongodb())
-    
+if __name__ == "__main__":
+    print(deploy_mongodb("1741647285"))
+    # print(deploy_mongodb(str(int(time.time()))))
