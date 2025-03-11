@@ -24,6 +24,8 @@ def stacks(request):
 def pricing(request):
     return render(request, "pricing.html", {})
 
+def profile(request):
+    return render(request, "profile.html", {})
 
 def maintenance(request):
     return render(request, "maintenance.html", {})

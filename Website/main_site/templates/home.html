@@ -31,10 +31,10 @@
               <a id="contact" href="/contact" class="block py-2 px-3 text-gray-900 rounded-sm hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-emerald-400 md:p-0 text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Contact</a>
             </li>
             <li>
-              <a id='login' class="px-6 py-2 min-w-[120px] text-center text-white border border-white rounded hover:bg-emerald-400 hover:text-white active:bg-emerald-400 focus:outline-none focus:ring"
-              href="/accounts/login">
-              Login
-            </a>
+              <a id="login" class="px-6 py-2 min-w-[120px] text-center text-white border border-white rounded hover:bg-emerald-400 hover:text-white active:bg-emerald-400 focus:outline-none focus:ring"
+              href="{% if user.is_authenticated %}/profile{% else %}/accounts/login{% endif %}" id="login-button">
+              {% if user.is_authenticated %} Visit Account {% else %} Login {% endif %}
+           </a>
             </li>
           </ul>
         </div>
@@ -77,13 +77,15 @@
       >
         MERN stands for MondoDB, Express.js, React, and Node.js. It is a modern stack that uses a combination of modern frameworks and a no sql database to ensure you spin up your webapp as quicky as possible.
       </p>
-      <button
-        class="align-middle select-none font-sans font-bold text-center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 px-6 rounded-lg border border-gray-900 text-gray-900 hover:opacity-75 focus:ring focus:ring-gray-300 active:opacity-[0.85] flex-shrink-0"
-        type="button"
-        data-ripple-dark="true"
-      >
-        Downoad Container
-      </button>
+      <a href="/stacks">
+        <button
+          class="align-middle select-none font-sans font-bold text-center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 px-6 rounded-lg border border-gray-900 text-gray-900 hover:opacity-75 focus:ring focus:ring-gray-300 active:opacity-[0.85] flex-shrink-0"
+          type="button"
+          data-ripple-dark="true"
+        >
+          Download Container
+        </button>
+      </a>
       <button
       class="align-middle select-none font-sans font-bold text-center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 px-6 rounded-lg border border-gray-900 text-gray-900 hover:opacity-75 focus:ring focus:ring-gray-300 active:opacity-[0.85] flex-shrink-0"
       type="button"
@@ -111,13 +113,15 @@
       >
         MEAN stands for MondoDB, Express.js, Angular, and Node.js. It is one of the most used tech stacks but requires a slightly higher learning curve than our MERN stack.
       </p>
-      <button
-        class="align-middle select-none font-sans font-bold text-center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 px-6 rounded-lg border border-gray-900 text-gray-900 hover:opacity-75 focus:ring focus:ring-gray-300 active:opacity-[0.85] flex-shrink-0"
-        type="button"
-        data-ripple-dark="true"
-      >
-        Downoad Container
-      </button>
+      <a href="/stacks">
+        <button
+          class="align-middle select-none font-sans font-bold text-center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 px-6 rounded-lg border border-gray-900 text-gray-900 hover:opacity-75 focus:ring focus:ring-gray-300 active:opacity-[0.85] flex-shrink-0"
+          type="button"
+          data-ripple-dark="true"
+        >
+          Download Container
+        </button>
+      </a>
       <button
       class="align-middle select-none font-sans font-bold text-center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 px-6 rounded-lg border border-gray-900 text-gray-900 hover:opacity-75 focus:ring focus:ring-gray-300 active:opacity-[0.85] flex-shrink-0"
       type="button"
