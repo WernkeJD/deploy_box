@@ -84,9 +84,6 @@ class GCPHelper:
         credentials.refresh(auth_req)
         token = credentials.token
 
-        # Configure Docker client
-        client = docker.from_env()
-
         # Authenticate Docker with the Artifact Registry
         auth_config = {
             "username": "oauth2accesstoken",
@@ -94,7 +91,7 @@ class GCPHelper:
             "registry": "us-central1-docker.pkg.dev",
         }
 
-        client.login(**auth_config)
+        self.docker.authen(**auth_config)
         print("Docker authenticated with us-central1-docker.pkg.dev")
 
     def build_and_push_images(self):
