@@ -45,7 +45,7 @@ def get_services_client():
 
 # Helper to determine when the service account is ready
 def service_account_ready(service_account_name):
-    attempts = 5
+    attempts = 50
     while attempts > 0:
         attempts -= 1
         client = get_iam_client()
