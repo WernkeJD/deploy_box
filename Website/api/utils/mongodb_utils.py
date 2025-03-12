@@ -23,7 +23,7 @@ def get_mongodb_token() -> None:
     if not response.ok:
         print(response.status_code)
         print(response.json())
-        response.raise_for_status()
+        raise Exception({"error": response.json()})
 
     mongo_db_token = response.json().get("access_token")
 
@@ -77,8 +77,8 @@ def deploy_mongodb_database(deployment_id: str) -> str:
     )
 
     if isinstance(response, requests.models.Response):
-        if response.status_code != 404:
-            raise response
+        # if response.status_code != 404:
+        #     raise Exception("Error: Failed to check if the user exists.")
 
         # Create a new database user
         user_data = {
