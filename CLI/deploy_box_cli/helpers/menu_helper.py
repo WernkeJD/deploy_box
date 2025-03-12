@@ -1,17 +1,17 @@
 import readchar
 from .decorators import singleton
 
-
+@singleton
 class MenuHelper:
-    @staticmethod
     def menu(
+        self,
         data_options: list[str] = [],
         extra_options: list[str] = [],
         prompt: str = "Select an option: ",
     ):
         """Displays a menu where the user can navigate with arrow keys."""
         selected_idx = 0
-        extra_options.append("Cancel")
+        extra_options = extra_options + ["Cancel"]
 
         options = data_options + extra_options
 

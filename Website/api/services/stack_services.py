@@ -11,8 +11,6 @@ from google.oauth2 import service_account
 from django.shortcuts import get_object_or_404
 import logging
 
-DEPLOY_BOX_API_URL = "http://34.68.6.54:5000/api"
-
 logger = logging.getLogger(__name__)
 
 
