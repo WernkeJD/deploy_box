@@ -1,8 +1,6 @@
 import cmd
 
-from deploy_box_cli.helpers.auth import AuthHelper
-from deploy_box_cli.helpers.docker import DockerHelper
-from deploy_box_cli.helpers.deployment import DeploymentHelper
+from deploy_box_cli.helpers import AuthHelper, DockerHelper, DeploymentHelper
 
 # Get current working directory
 import os
@@ -26,7 +24,9 @@ class DeployCLI(cmd.Cmd):
         self.cli_dir = os.path.dirname(os.path.abspath(__file__))
         self.auth = AuthHelper()
         self.docker = DockerHelper()
-        self.deployment = DeploymentHelper(auth=self.auth, cli_dir=self.cli_dir)
+        self.deployment = DeploymentHelper(cli_dir=self.cli_dir)
+
+        self.deployment.upload_source_code()
 
     def do_login(self, _):
         """Login to the CLI"""

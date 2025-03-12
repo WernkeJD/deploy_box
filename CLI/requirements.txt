@@ -10,3 +10,4 @@ more-itertools==10.6.0
 pkce==1.0.3
 requests==2.32.3
 urllib3==2.3.0
+google-cloud-storage
