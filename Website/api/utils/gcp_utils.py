@@ -67,6 +67,8 @@ def create_service_account_key(project_id, service_account_name, key_file_path):
         f"projects/{project_id}/serviceAccounts/{service_account_email}"
     )
 
+    client.get_service_account(name=service_account_resource)
+
     response = client.create_service_account_key(
         name=service_account_resource,
         private_key_type="TYPE_GOOGLE_CREDENTIALS_FILE",
@@ -238,16 +240,17 @@ def deploy_service(service_name, image, env_vars):
         policy.bindings.append(
             policy_pb2.Binding(role="roles/run.invoker", members=["allUsers"])
         )
-        run_client.set_iam_policy(request={"resource": service_full_name, "policy": policy})
+        run_client.set_iam_policy(
+            request={"resource": service_full_name, "policy": policy}
+        )
 
         # Get service URL
         service_info = run_client.get_service(name=service_full_name)
         return service_info.uri
-    
+
     except Exception as e:
         print(f"Error: {e}")
         raise e
-    
 
 
 # Function to refresh the service by updating the image
