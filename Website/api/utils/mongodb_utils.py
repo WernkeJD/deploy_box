@@ -6,8 +6,7 @@ from django.conf import settings
 
 # client = MongoClient(MONGODB_CONNECTION_STRING)
 
-mongo_db_token = settings.MONGO_DB.get("TOKEN")
-
+mongo_db_token = None
 
 def get_mongodb_token() -> None:
     global mongo_db_token
@@ -20,7 +19,11 @@ def get_mongodb_token() -> None:
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     auth = (settings.MONGO_DB.get("CLIENT_ID"), settings.MONGO_DB.get("CLIENT_SECRET"))
     response = requests.post(url, data=payload, headers=headers, auth=auth)
-    response.raise_for_status()
+
+    if not response.ok:
+        print(response.status_code)
+        print(response.json())
+        response.raise_for_status()
 
     mongo_db_token = response.json().get("access_token")
 
@@ -49,6 +52,7 @@ def request_helper(url, method="GET", data=None):
         elif method == "PATCH":
             response = requests.patch(url, headers=headers, json=data)
 
+        print(response.status_code)
         if response.status_code == 401:
             mongo_db_token = None
             get_mongodb_token()

@@ -8,7 +8,7 @@ urlpatterns = [
     path(
         "stacks/<int:stack_id>/download", views.stack_operations, name="download_stack"
     ),
-    path("deployments", views.deployment_operations, name="add_deployments"),
+    path("deployments/", views.deployment_operations, name="add_deployments"),
     path(
         "deployments/<int:deployment_id>",
         views.deployment_operations,

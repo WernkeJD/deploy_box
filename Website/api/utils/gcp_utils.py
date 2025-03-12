@@ -12,7 +12,6 @@ from django.conf import settings
 # Set paths and credentials
 current_working_dir = os.getcwd()
 GCP_KEY_PATH = settings.GCP_KEY_PATH
-credentials = service_account.Credentials.from_service_account_file(GCP_KEY_PATH)
 PROJECT_ID = "deploy-box"
 REGION = "us-central1"
 name = f"projects/{PROJECT_ID}"
@@ -20,23 +19,28 @@ parent = f"{name}/locations/{REGION}"
 
 
 # Helper function to load credentials
-def get_credentials(key_path=GCP_KEY_PATH):
-    return service_account.Credentials.from_service_account_file(key_path)
+def get_credentials():
+    return service_account.Credentials.from_service_account_file(GCP_KEY_PATH)
 
 
 # Helper function to initialize IAM client
 def get_iam_client():
-    return iam_admin_v1.IAMClient(credentials=credentials)
+    return iam_admin_v1.IAMClient(credentials=get_credentials())
 
 
 # Helper function to initialize Artifact Registry client
 def get_artifact_registry_client():
-    return artifactregistry_v1.ArtifactRegistryClient(credentials=credentials)
+    return artifactregistry_v1.ArtifactRegistryClient(credentials=get_credentials())
 
 
 # Helper function to initialize storage client
 def get_storage_client():
-    return storage.Client(project=PROJECT_ID, credentials=credentials)
+    return storage.Client(project=PROJECT_ID, credentials=get_credentials())
+
+
+# Helper function to initialize services client
+def get_services_client():
+    return run_v2.ServicesClient(credentials=get_credentials())
 
 
 # Helper to determine when the service account is ready
@@ -115,7 +119,6 @@ def create_service_account_and_resources(deployment_id: str):
 
         # Initialize IAM client
         client = get_iam_client()
-        name = f"projects/{PROJECT_ID}"
 
         # Check if service account exists
         service_accounts = client.list_service_accounts(name=name)
@@ -200,49 +203,56 @@ def create_service_account_and_resources(deployment_id: str):
 
 # Function to deploy service with environment variables
 def deploy_service(service_name, image, env_vars):
-    credentials = get_credentials()
-    run_client = run_v2.ServicesClient(credentials=credentials)
-    parent = f"projects/{PROJECT_ID}/locations/{REGION}"
+    try:
+        print(f"Deploying {service_name}...")
 
-    service = run_v2.Service(
-        template=run_v2.RevisionTemplate(
-            containers=[
-                run_v2.Container(
-                    image=image,
-                    env=[
-                        run_v2.EnvVar(name=key, value=value)
-                        for key, value in env_vars.items()
-                    ],
-                    ports=[run_v2.ContainerPort(container_port=8080)],
-                )
-            ],
-            timeout=Duration(seconds=300),  # 5 min timeout
+        run_client = get_services_client()
+
+        print(f"Deploying {service_name}...")
+
+        service = run_v2.Service(
+            template=run_v2.RevisionTemplate(
+                containers=[
+                    run_v2.Container(
+                        image=image,
+                        env=[
+                            run_v2.EnvVar(name=key, value=value)
+                            for key, value in env_vars.items()
+                        ],
+                        ports=[run_v2.ContainerPort(container_port=8080)],
+                    )
+                ],
+                timeout=Duration(seconds=300),  # 5 min timeout
+            )
         )
-    )
 
-    operation = run_client.create_service(
-        parent=parent, service=service, service_id=service_name
-    )
-    operation.result()  # Wait for deployment
-    print(f"Deployed {service_name}")
+        operation = run_client.create_service(
+            parent=parent, service=service, service_id=service_name
+        )
+        operation.result()  # Wait for deployment
+        print(f"Deployed {service_name}")
 
-    # Add IAM policy binding to allow all users to invoke the service
-    service_full_name = f"{parent}/services/{service_name}"
-    policy = run_client.get_iam_policy(request={"resource": service_full_name})
-    policy.bindings.append(
-        policy_pb2.Binding(role="roles/run.invoker", members=["allUsers"])
-    )
-    run_client.set_iam_policy(request={"resource": service_full_name, "policy": policy})
+        # Add IAM policy binding to allow all users to invoke the service
+        service_full_name = f"{parent}/services/{service_name}"
+        policy = run_client.get_iam_policy(request={"resource": service_full_name})
+        policy.bindings.append(
+            policy_pb2.Binding(role="roles/run.invoker", members=["allUsers"])
+        )
+        run_client.set_iam_policy(request={"resource": service_full_name, "policy": policy})
 
-    # Get service URL
-    service_info = run_client.get_service(name=service_full_name)
-    return service_info.uri
+        # Get service URL
+        service_info = run_client.get_service(name=service_full_name)
+        return service_info.uri
+    
+    except Exception as e:
+        print(f"Error: {e}")
+        raise e
+    
 
 
 # Function to refresh the service by updating the image
 def refresh_service(service_name, image):
-    credentials = get_credentials()
-    run_client = run_v2.ServicesClient(credentials=credentials)
+    run_client = get_services_client()
     parent = f"projects/{PROJECT_ID}/locations/{REGION}"
 
     service_full_name = f"{parent}/services/{service_name}"

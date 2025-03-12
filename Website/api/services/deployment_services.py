@@ -55,15 +55,6 @@ def add_deployment(request: Request) -> Response:
 
     deployment_id = str(deployment.id)
 
-    # try:
-    #     current_working_dir = os.getcwd()
-
-    #     service_account_key_path = os.path.join(
-    #         current_working_dir, "api", "utils", f"{"testing"}-key.json"
-    #     )
-
-
-
     try:
 
         google_cli_key = gcp_utils.create_service_account_and_resources(deployment_id)
@@ -80,6 +71,7 @@ def add_deployment(request: Request) -> Response:
         # Create deployment backend
         # TODO: Use the backend image from the stack
         backend_image = "kalebwbishop/mern-backend"
+        print(f"Deploying backend with image: {backend_image}")
         backend_url = gcp_utils.deploy_service(
             f"backend-{deployment_id}", backend_image, {"MONGO_URI": mongo_db_uri}
         )
