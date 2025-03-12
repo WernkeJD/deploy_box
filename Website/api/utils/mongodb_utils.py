@@ -61,6 +61,7 @@ def request_helper(url, method="GET", data=None):
 
 
 def deploy_mongodb_database(deployment_id: str) -> str:
+    print("Deploying MongoDB database...")
     database_name = f"db-{deployment_id}"
     username = f"deployBoxUser{deployment_id}"
     password = hashlib.sha256(str(time.time()).encode()).hexdigest()[:12]
@@ -82,7 +83,6 @@ def deploy_mongodb_database(deployment_id: str) -> str:
             "username": username,
             "password": password,
             "roles": [{"databaseName": database_name, "roleName": "readWrite"}],
-            "scopes": [{"name": "cluster0", "type": "CLUSTER"}],
         }
 
         response = request_helper(
@@ -91,7 +91,7 @@ def deploy_mongodb_database(deployment_id: str) -> str:
 
         # TODO: Check if the user was created successfully
 
-    connection_string = f"mongodb+srv://{username}:{password}@cluster0.yjaoi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+    connection_string = f"mongodb+srv://{username}:{password}@cluster0.yjaoi.mongodb.net/{database_name}?retryWrites=true&w=majority&appName=Cluster0"
 
     return connection_string
 

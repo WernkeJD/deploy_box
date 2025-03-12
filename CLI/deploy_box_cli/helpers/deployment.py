@@ -135,6 +135,16 @@ class DeploymentHelper:
             compressed_file = self.compress_source_code()
 
             self.gcp.upload_to_bucket(compressed_file)
+            frontend_image, backend_image = self.gcp.upload_to_artifact_registry()
+
+            self.auth.request_api(
+                "PATCH",
+                f"deployments/{deployment_id}",
+                data={
+                    "frontend_image": frontend_image,
+                    "backend_image": backend_image,
+                },
+            )
 
         # Upload to existing deployment
         else:

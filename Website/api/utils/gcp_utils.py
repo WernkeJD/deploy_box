@@ -6,7 +6,7 @@ from google.cloud import storage
 from google.oauth2 import service_account
 from google.cloud import iam_admin_v1
 import os
-
+import time
 
 # Set paths and credentials
 current_working_dir = os.getcwd()
@@ -38,6 +38,20 @@ def get_storage_client():
     return storage.Client(project=PROJECT_ID, credentials=credentials)
 
 
+# Helper to determine when the service account is ready
+def service_account_ready(service_account_name):
+    attempts = 5
+    while attempts > 0:
+        attempts -= 1
+        client = get_iam_client()
+        service_accounts = client.list_service_accounts(name=name)
+        for account in service_accounts:
+            if service_account_name in account.name:
+                return True
+        time.sleep(2)
+    return False
+
+
 # Function to create service account key
 def create_service_account_key(project_id, service_account_name, key_file_path):
     client = get_iam_client()
@@ -63,8 +77,7 @@ def create_service_account_key(project_id, service_account_name, key_file_path):
 def create_bucket(bucket_name, location):
     client = get_storage_client()
     bucket = client.bucket(bucket_name)
-    bucket.location = location
-    bucket.create()
+    bucket.create(location=location)
     print(f"Bucket '{bucket_name}' created in location '{location}'.")
 
 
@@ -137,6 +150,10 @@ def create_service_account_and_resources(deployment_id: str):
         response = operation.result()
         print(f"Repository created: {response.name}")
 
+        # Check if service account is ready
+        if not service_account_ready(service_account_name):
+            print("Service account not ready.")
+
         # Add IAM policy binding to Artifact Registry repository
         repository_resource = response.name
         policy_request = iam_policy_pb2.GetIamPolicyRequest(
@@ -156,6 +173,10 @@ def create_service_account_and_resources(deployment_id: str):
         # Create Google Cloud Storage bucket
         bucket_name = f"deploy-box-bucket-{deployment_id}"
         create_bucket(bucket_name, location)
+
+        # Check if service account is ready
+        if not service_account_ready(service_account_name):
+            print("Service account not ready.")
 
         # Add IAM policy binding to the bucket
         add_iam_policy_binding_to_bucket(bucket_name, service_account_name, role)

@@ -5,7 +5,6 @@ from ..models import (
     DeploymentDatabase,
     Stacks,
 )
-import requests
 from rest_framework import status
 from pymongo import MongoClient
 from rest_framework.request import Request
@@ -61,14 +60,13 @@ def add_deployment(request: Request) -> Response:
         google_cli_key = gcp_utils.create_service_account_and_resources(deployment_id)
         deployment.google_cli_key = google_cli_key
 
-        deployment.save()
-
         # Create deployment database
         mongo_db_uri = mongodb_utils.deploy_mongodb_database(deployment_id)
         deployment_database = DeploymentDatabase.objects.create(
             deployment=deployment,
             uri=mongo_db_uri,
         )
+        print(f"MongoDB URI: {mongo_db_uri}")
 
         # Create deployment backend
         # TODO: Use the backend image from the stack
@@ -82,6 +80,7 @@ def add_deployment(request: Request) -> Response:
             url=backend_url,
             image_url=backend_image,
         )
+        print(f"Backend URL: {backend_url}")
 
         # Create deployment frontend
         # TODO: Use the frontend image from the stack
@@ -97,6 +96,7 @@ def add_deployment(request: Request) -> Response:
             url=frontend_url,
             image_url=frontend_image,
         )
+        print(f"Frontend URL: {frontend_url}")
 
         # Save the deployment details
         deployment_database.save()
@@ -108,7 +108,7 @@ def add_deployment(request: Request) -> Response:
         deployment.delete()
 
         return Response(
-            {"error": "Failed to create service account."},
+            {"error": str(e)},
             status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
