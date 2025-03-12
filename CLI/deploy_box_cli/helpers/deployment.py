@@ -22,10 +22,11 @@ class DeploymentHelper:
         """Download and extract source code for the selected stack."""
         stacks = self.get_available_stacks()
 
-        data_options = [f"{stack['type']}" for stack in stacks ]
-        extra_options = ["Upload new deployment"]
+        data_options = [f"{stack['type']}" for stack in stacks]
 
-        selected_idx, _ = MenuHelper.menu(data_options=data_options, extra_options=extra_options, prompt="Select a deployment to deploy:")
+        selected_idx, _ = MenuHelper.menu(
+            data_options=data_options, prompt="Select a stack to download:"
+        )
 
         stack_type = stacks[selected_idx]["type"]
         stack_id = stacks[selected_idx]["id"]
@@ -35,7 +36,7 @@ class DeploymentHelper:
         extracted_file_name = os.path.join(current_working_dir, stack_type)
 
         response = self.auth.request_api(
-            "GET", f"stack/{stack_id}", stream=True
+            "GET", f"stacks/{stack_id}/download", stream=True
         )
         if response.status_code == 200:
             print("Downloading file...")
@@ -64,7 +65,6 @@ class DeploymentHelper:
 
         return response.json()
 
-
     def upload_source_code(self):
         compressed_file = self.compress_source_code()
 
@@ -74,7 +74,11 @@ class DeploymentHelper:
         data_options = [f"{deployment['name']}" for deployment in available_deployments]
         extra_options = ["Upload new deployment"]
 
-        selected_idx, _ = MenuHelper.menu(data_options=data_options, extra_options=extra_options, prompt="Select a deployment to deploy:")
+        selected_idx, _ = MenuHelper.menu(
+            data_options=data_options,
+            extra_options=extra_options,
+            prompt="Select a deployment to deploy:",
+        )
 
         # Cancel the operation
         if selected_idx == -1:
@@ -89,7 +93,6 @@ class DeploymentHelper:
             if not deployment_name:
                 print("Error: Deployment name is required.")
                 return
-        
 
             available_stacks = self.get_available_stacks()
 
@@ -106,9 +109,8 @@ class DeploymentHelper:
             if selected_idx == -1:
                 print("Operation cancelled.")
                 return
-            
 
-            deployment_stack_id = available_stacks[selected_idx]["id"]            
+            deployment_stack_id = available_stacks[selected_idx]["id"]
 
             deployment_data = {"name": deployment_name, "stack_id": deployment_stack_id}
 
@@ -117,7 +119,11 @@ class DeploymentHelper:
             files = {"file": open("./MERN.tar", "rb")}
 
             self.auth.request_api(
-                "POST", "upload_deployment", data=deployment_data, files=files, stream=True
+                "POST",
+                "upload_deployment",
+                data=deployment_data,
+                files=files,
+                stream=True,
             )
 
         # Upload to existing deployment
@@ -129,7 +135,11 @@ class DeploymentHelper:
             files = {"file": open("./MERN.tar", "rb")}
 
             self.auth.request_api(
-                "PATCH", "patch_deployment", data=deployment_data, files=files, stream=True
+                "PATCH",
+                "patch_deployment",
+                data=deployment_data,
+                files=files,
+                stream=True,
             )
 
     def compress_source_code(self):
@@ -138,16 +148,16 @@ class DeploymentHelper:
 
         # TODO: Make sure the user can compress their source code from the cli
 
-        # Check if the directory contains a frontend directory  
+        # Check if the directory contains a frontend directory
         if not os.path.exists(os.path.join(current_working_dir, "frontend")):
             print("Error: No frontend directory found.")
             return
-        
+
         # Check if the directory contains a backend directory
         if not os.path.exists(os.path.join(current_working_dir, "backend")):
             print("Error: No backend directory found.")
             return
-        
+
         # Check if the directory contains a database directory
         if not os.path.exists(os.path.join(current_working_dir, "database")):
             print("Error: No database directory found.")

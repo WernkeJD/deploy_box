@@ -28,7 +28,10 @@ def testing(request: Request):
 def stack_operations(request: Request, stack_id=None):
     # GET: Fetch available stacks or a specific stack
     if request.method == "GET":
-        return stack_services.get_stacks(request, stack_id)
+        if request.path.endswith("/download"):
+            return stack_services.download_stack(request, stack_id)
+        else:
+            return stack_services.get_stacks(request, stack_id)
 
     # POST: Add a new stack
     elif request.method == "POST":

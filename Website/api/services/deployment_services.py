@@ -114,49 +114,31 @@ def update_deployment(user, deployment_id, tar_file):
         }, status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
-# Function to handle stack download
-def download_stack(user, stack_id):
-    try:
-        stack = Stacks.objects.get(id=stack_id, user=user)
-    except Stacks.DoesNotExist:
-        return {"error": "Stack not found."}, status.HTTP_404_NOT_FOUND
-
-    try:
-        source_code = requests.get(f"http://localhost:5000/api/code/{stack.type}")
-        if source_code.status_code != 200:
-            return {
-                "error": "Failed to download stack"
-            }, status.HTTP_500_INTERNAL_SERVER_ERROR
-
-        return source_code.content, None  # Return the source code if successful
-
-    except requests.RequestException as e:
-        return {
-            "error": f"Error downloading stack: {str(e)}"
-        }, status.HTTP_500_INTERNAL_SERVER_ERROR
-
 def delete_deployment(user, deployment_id):
     # TODO: Implement the delete deployment logic
     pass
+
 
 def get_deployment_cost(request, deployment_id):
     user = request.user
     # deployment = Deployments.objects.filter(id=deployment_id, user=user).first()
     # if not deployment:
     #     return Response({"error": "Deployment not found."}, status.HTTP_404_NOT_FOUND)
-    
+
     # deployment_backend = DeploymentBackend.objects.filter(deployment=deployment).first()
 
     # if not deployment_backend:
     #     return Response({"error": "Deployment backend not found."}, status.HTTP_404_NOT_FOUND)
-    
+
     # client = MongoClient(deployment_backend.uri)
-    client = MongoClient("mongodb+srv://deployBoxAdmin:Dramatic23@cluster0.yjaoi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+    client = MongoClient(
+        "mongodb+srv://deployBoxAdmin:Dramatic23@cluster0.yjaoi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+    )
 
-    db_id = '1'
+    db_id = "1"
 
-    db = client[f'db-{db_id}']
+    db = client[f"db-{db_id}"]
 
-    stats = db.command('dbstats')
+    stats = db.command("dbstats")
 
     return Response({"data": stats}, status.HTTP_200_OK)

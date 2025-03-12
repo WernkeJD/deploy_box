@@ -22,6 +22,14 @@ class Deployments(models.Model):
     def __str__(self):
         return self.user.username + " - " + self.stack_type
 
+    def __dict__(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "stack": self.stack.__dict__(),
+            "created_at": self.created_at,
+        }
+
 
 class DeploymentFrontend(models.Model):
     deployment = models.ForeignKey(Deployments, on_delete=models.CASCADE)
@@ -31,6 +39,14 @@ class DeploymentFrontend(models.Model):
 
     def __str__(self):
         return self.url
+
+    def __dict__(self):
+        return {
+            "id": self.id,
+            "url": self.url,
+            "image_url": self.image_url,
+            "created_at": self.created_at,
+        }
 
 
 class DeploymentBackend(models.Model):
@@ -42,6 +58,14 @@ class DeploymentBackend(models.Model):
     def __str__(self):
         return self.url
 
+    def __dict__(self):
+        return {
+            "id": self.id,
+            "url": self.url,
+            "image_url": self.image_url,
+            "created_at": self.created_at,
+        }
+
 
 class DeploymentDatabase(models.Model):
     deployment = models.ForeignKey(Deployments, on_delete=models.CASCADE)
@@ -50,3 +74,10 @@ class DeploymentDatabase(models.Model):
 
     def __str__(self):
         return self.url
+
+    def __dict__(self):
+        return {
+            "id": self.id,
+            "uri": self.uri,
+            "created_at": self.created_at,
+        }
