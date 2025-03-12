@@ -10,6 +10,7 @@ import os
 from google.oauth2 import service_account
 from django.shortcuts import get_object_or_404
 import logging
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ def download_stack(request: Request, stack_id: str = None) -> Response:
     stack = get_object_or_404(Stacks, id=stack_id, user=request.user)
 
     # Load service account credentials
-    credentials_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'key.json')
+    credentials_path = settings.GCP_KEY_PATH
     
     try:
         credentials = service_account.Credentials.from_service_account_file(credentials_path)
