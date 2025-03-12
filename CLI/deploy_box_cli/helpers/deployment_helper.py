@@ -102,10 +102,8 @@ class DeploymentHelper:
 
             available_stacks = self.get_available_stacks()
 
-            data_options = [
-                f"{stack['variant']} {stack['type']} : {stack['version']}"
-                for stack in available_stacks
-            ]
+            data_options = [f"{stack['stack']['type']}" for stack in available_stacks]
+
             selected_idx, _ = self.menu.menu(
                 data_options=data_options,
                 extra_options=[],
