@@ -2,6 +2,7 @@ from ..models import Stacks
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework import status
+from ..serializers.stacks_serializer import StacksSerializer
 
 
 def get_stacks(request: Request, stack_id: str = None) -> Response:
@@ -15,7 +16,9 @@ def get_stacks(request: Request, stack_id: str = None) -> Response:
 
             return Response({"error": "Stack Not Found"}, status.HTTP_404_NOT_FOUND)
     else:
-        return Response({"data": user.stacks_set.all()}, status.HTTP_200_OK)
+        stacks = user.stacks_set.all()
+        serializer = StacksSerializer(stacks, many=True)
+        return Response({"data": serializer.data}, status.HTTP_200_OK)
 
 
 def add_stack(request: Request) -> Response:
