@@ -91,7 +91,7 @@ class GCPHelper:
             "registry": "us-central1-docker.pkg.dev",
         }
 
-        self.docker.authen(**auth_config)
+        self.docker.authenticate(auth_config)
         print("Docker authenticated with us-central1-docker.pkg.dev")
 
     def build_and_push_images(self):

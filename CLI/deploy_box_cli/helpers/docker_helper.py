@@ -7,8 +7,10 @@ from .decorators import singleton
 
 @singleton
 class DockerHelper:
-    @staticmethod
-    def check_docker():
+    def __init__(self):
+        self.client = None
+
+    def check_docker(self):
         """Check if Docker is installed."""
         try:
             subprocess.run(
@@ -23,8 +25,7 @@ class DockerHelper:
             print("Docker is not installed.")
             return False
 
-    @staticmethod
-    def start_docker_engine():
+    def start_docker_engine(self):
         """Start Docker engine based on OS."""
         if sys.platform.startswith("linux"):
             subprocess.run(["sudo", "systemctl", "start", "docker"], check=True)
@@ -35,8 +36,7 @@ class DockerHelper:
         else:
             print("Docker engine start not supported on this platform.")
 
-    @staticmethod
-    def install_docker():
+    def install_docker(self):
         """Install Docker based on OS."""
         if sys.platform.startswith("linux"):
             subprocess.run(
@@ -60,14 +60,18 @@ class DockerHelper:
         else:
             print("Docker installation not supported on this platform.")
 
-    @staticmethod
-    def build_image(image_name: str, source_directory: str):
-        """Build a Docker image."""
-        client = docker.from_env()
-        client.images.build(path=source_directory, tag=image_name)
+    def authenticate(self, auth_config):
+        """Authenticate with Docker Hub."""
+        self.client = docker.from_env()
+        self.client.login(**auth_config)
 
-    @staticmethod
-    def push_image(image_name: str):
+    def build_image(self, image_name: str, source_directory: str):
+        """Build a Docker image."""
+        image, logs = self.client.images.build(path=source_directory, tag=image_name)
+
+        for log in logs:
+            print(log)
+
+    def push_image(self, image_name: str):
         """Push a Docker image to a registry."""
-        client = docker.from_env()
-        client.images.push(image_name)
+        self.client.images.push(image_name)

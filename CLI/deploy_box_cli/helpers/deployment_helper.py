@@ -33,7 +33,7 @@ class DeploymentHelper:
             data_options=data_options, prompt="Select a stack to download:"
         )
 
-        stack_type = stacks[selected_idx]['stack']["type"]
+        stack_type = stacks[selected_idx]["stack"]["type"]
         stack_id = stacks[selected_idx]["id"]
 
         current_working_dir = os.getcwd()
@@ -164,6 +164,8 @@ class DeploymentHelper:
                     "backend_image": backend_image,
                 },
             )
+
+        print("Deployment updated successfully!")
 
     def compress_source_code(self):
         """Compress the source code into a tar file."""
