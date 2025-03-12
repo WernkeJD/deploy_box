@@ -20,14 +20,22 @@ class DeploymentHelper:
 
     def download_source_code(self):
         """Download and extract source code for the selected stack."""
-        stack_id, stack_type = self.get_available_stacks()
+        stacks = self.get_available_stacks()
+
+        data_options = [f"{deployment['name']}" for deployment in stacks ]
+        extra_options = ["Upload new deployment"]
+
+        selected_idx, _ = MenuHelper.menu(data_options=data_options, extra_options=extra_options, prompt="Select a deployment to deploy:")
+
+        stack_type = stacks[selected_idx]["stack_type"]
+        stack_id = stacks[selected_idx]["stack_id"]
 
         current_working_dir = os.getcwd()
         file_name = os.path.join(current_working_dir, f"{stack_type}.tar")
         extracted_file_name = os.path.join(current_working_dir, stack_type)
 
         response = self.auth.request_api(
-            "GET", f"download_stack/{stack_id}", stream=True
+            "GET", f"stack/{stack_id}", stream=True
         )
         if response.status_code == 200:
             print("Downloading file...")
