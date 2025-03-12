@@ -93,7 +93,7 @@ def download_stack(request: Request, stack_id: str = None) -> Response:
         return Response({"error": "Internal server error."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     bucket_name = "deploy_box_bucket"
-    blob_name = f"{stack.type.upper()}.tar"
+    blob_name = f"{stack.stack.type.upper()}.tar"
 
     try:
         bucket = client.bucket(bucket_name)

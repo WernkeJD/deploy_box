@@ -56,8 +56,8 @@ PyJWT==2.9.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 python-slugify==8.0.4
-pywin32==309
-pywin32-ctypes==0.2.3
+# pywin32==309
+# pywin32-ctypes==0.2.3
 PyYAML==6.0.2
 readchar==4.2.1
 requests==2.32.3
