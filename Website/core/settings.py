@@ -201,3 +201,5 @@ MONGO_DB = {
     "CLIENT_ID": os.environ.get("MONGODB_CLIENT_ID"),
     "CLIENT_SECRET": os.environ.get("MONGODB_CLIENT_SECRET"),
 }
+
+GCP_KEY_PATH=os.environ.get("GCP_KEY_PATH")

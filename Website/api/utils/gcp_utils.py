@@ -7,11 +7,12 @@ from google.oauth2 import service_account
 from google.cloud import iam_admin_v1
 import os
 import time
+from django.conf import settings
 
 # Set paths and credentials
 current_working_dir = os.getcwd()
-gcloud_key_path = os.path.join(current_working_dir, "api", "key.json")
-credentials = service_account.Credentials.from_service_account_file(gcloud_key_path)
+GCP_KEY_PATH = settings.GCP_KEY_PATH
+credentials = service_account.Credentials.from_service_account_file(GCP_KEY_PATH)
 PROJECT_ID = "deploy-box"
 REGION = "us-central1"
 name = f"projects/{PROJECT_ID}"
@@ -19,7 +20,7 @@ parent = f"{name}/locations/{REGION}"
 
 
 # Helper function to load credentials
-def get_credentials(key_path=gcloud_key_path):
+def get_credentials(key_path=GCP_KEY_PATH):
     return service_account.Credentials.from_service_account_file(key_path)
 
 
