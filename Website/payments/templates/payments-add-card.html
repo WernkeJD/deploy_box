@@ -1,81 +1,97 @@
-<script src="https://js.stripe.com/v3/"></script>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Checkout</title>
+    <script src="https://js.stripe.com/v3/"></script>
+  </head>
+  <body>
+    <script>
+      const stripe = Stripe("{{ stripe_publishable_key }}");
+    </script>
 
-<!-- Payment Form -->
-<form id="payment-form">
-  <div id="card-element">
-    <!-- Stripe Element will be inserted here -->
-  </div>
-  <button type="submit" id="submit">Submit Payment</button>
-</form>
+    <form id="payment-form">
+      <div id="payment-element">
+        <!-- Elements will create form elements here -->
+      </div>
+      <button id="submit">Submit</button>
+      <div id="error-message">
+        <!-- Display error message to your customers here -->
+      </div>
+    </form>
 
-<script>
-  var stripe = Stripe(
-    "pk_test_51R0cehC8awKXIVJajHxovZ30vdMGKtaCMM5I5YcE4L2YjEqrAeISrU2gDmYeun8nz0rzIQYYPbKjQOBzyGuw5zkZ00FyYoTQrE"
-  ); // Your Stripe publishable key
-  var elements = stripe.elements();
-
-  // Create an instance of the card Element.
-  var cardElement = elements.create("card", {
-    style: {
-      base: {
-        color: "#32325d",
-        fontFamily: "Arial, sans-serif",
-        fontSize: "16px",
-        fontSmoothing: "antialiased",
-        "::placeholder": {
-          color: "#aab7c4",
+    <script>
+      const options = {
+        mode: "setup",
+        currency: "usd",
+        // Fully customizable with appearance API.
+        appearance: {
+          /*...*/
         },
-      },
-      invalid: {
-        color: "#fa755a",
-        iconColor: "#fa755a",
-      },
-    },
-  });
+      };
 
-  // Mount the card Element to the DOM (in the div with id 'card-element').
-  cardElement.mount("#card-element");
+      const elements = stripe.elements(options);
+      // Create and mount the Payment Element
+      const paymentElementOptions = { layout: "accordion" };
+      const paymentElement = elements.create("payment", paymentElementOptions);
+      paymentElement.mount("#payment-element");
 
-  // Form submission handler
-  var form = document.getElementById("payment-form");
+      const form = document.getElementById("payment-form");
+      const submitBtn = document.getElementById("submit");
 
-  form.addEventListener("submit", function (event) {
-    event.preventDefault(); // Prevent form submission
+      const handleError = (error) => {
+        const messageContainer = document.querySelector("#error-message");
+        messageContainer.textContent = error.message;
+        submitBtn.disabled = false;
+      };
 
-    stripe
-      .createPaymentMethod({
-        type: "card",
-        card: cardElement,
-      })
-      .then(function (result) {
-        if (result.error) {
-          // Handle errors (e.g., invalid card details)
-          console.log(result.error.message);
+      form.addEventListener("submit", async (event) => {
+        // We don't want to let default form submission happen here,
+        // which would refresh the page.
+        event.preventDefault();
+
+        // Prevent multiple form submissions
+        if (submitBtn.disabled) {
+          return;
+        }
+
+        // Disable form submission while loading
+        submitBtn.disabled = true;
+
+        // Trigger form validation and wallet collection
+        const { error: submitError } = await elements.submit();
+        if (submitError) {
+          handleError(submitError);
+          return;
+        }
+
+        // Create the PaymentIntent and obtain clientSecret
+        const res = await fetch("/payments/create-intent/", {
+          method: "POST",
+        });
+
+        const { client_secret: clientSecret } = await res.json();
+
+        console.log(elements);
+
+        // Confirm the PaymentIntent using the details collected by the Payment Element
+        const { error } = await stripe.confirmSetup({
+          elements,
+          clientSecret,
+          confirmParams: {
+            return_url: "https://example.com/order/123/complete",
+          },
+        });
+
+        if (error) {
+          // This point is only reached if there's an immediate error when
+          // confirming the payment. Show the error to your customer (for example, payment details incomplete)
+          handleError(error);
         } else {
-          // Send Payment Method ID to your Django backend
-          fetch("/payments/create-payment-method/", {
-            method: "POST",
-            body: JSON.stringify({
-              payment_method_id: result.paymentMethod.id,
-            }),
-            headers: { "Content-Type": "application/json" },
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              console.log(data);
-              // Create subscription with customer ID
-              fetch("/payments/create-subscription/", {
-                method: "POST",
-                body: JSON.stringify({ customer_id: data.customer_id }),
-                headers: { "Content-Type": "application/json" },
-              })
-                .then((response) => response.json())
-                .then((subscriptionData) => {
-                  // Handle success, such as redirecting to Stripe Checkout or displaying a success message
-                  console.log("Subscription created:", subscriptionData);
-                });
-            });
+          // Your customer is redirected to your `return_url`. For some payment
+          // methods like iDEAL, your customer is redirected to an intermediate
+          // site first to authorize the payment, then redirected to the `return_url`.
         }
       });
-  });
-</script>
+    </script>
+  </body>
+</html>

@@ -1,18 +1,15 @@
 from django.conf import settings
 from django.http.response import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic.base import TemplateView
 from django.http import HttpResponse
 from api.models import Stacks
 from django.contrib.auth.models import User
+from accounts.models import UserProfile
 import json
 import time
 import stripe
-from rest_framework.decorators import permission_classes
-from rest_framework.permissions import IsAuthenticated
 from accounts.decorators.oauth_required import oauth_required
 from django.shortcuts import render
-from accounts.models import UserProfile
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -24,7 +21,11 @@ def home_page_view(request):
 
 @oauth_required
 def add_card_view(request):
-    return render(request, "payments-add-card.html")
+    return render(
+        request,
+        "payments-add-card.html",
+        {"stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY},
+    )
 
 
 @oauth_required
@@ -44,10 +45,66 @@ def stripe_config(request):
         return JsonResponse(stripe_config, safe=False)
 
 
+def create_stripe_user(user: User):
+    # Create a new customer in Stripe
+    try:
+        customer = stripe.Customer.create(
+            name=f"{user.first_name} {user.last_name}",
+            email=user.email,
+        )
+
+        return customer.id
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@csrf_exempt
+@oauth_required
+def create_intent(request):
+    try:
+        user_profile = UserProfile.objects.get(user=request.user)
+
+        intent = stripe.SetupIntent.create(
+            customer=user_profile.stripe_customer_id,
+        )
+        print(intent.client_secret)
+        return JsonResponse({"client_secret": intent.client_secret})
+    except stripe.error.StripeError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@csrf_exempt
+@oauth_required
+def save_payment_method(request):
+    try:
+        payment_method_id = request.POST.get("payment_method")
+
+        user_profile = UserProfile.objects.get(user=request.user)
+        customer_id = user_profile.stripe_customer_id
+
+        # Attach the payment method to the customer
+        stripe.PaymentMethod.attach(
+            payment_method_id,
+            customer=customer_id,  # Use the current logged-in user's Stripe customer ID
+        )
+
+        # Optionally, you can set this payment method as the default for subscriptions
+        stripe.customers.update(
+            customer_id,  # Use the current logged-in user's Stripe customer ID
+            invoice_settings={"default_payment_method": payment_method_id},
+        )
+
+        return JsonResponse({"status": "Payment method saved successfully"})
+
+    except stripe.error.StripeError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
 @csrf_exempt
 def create_checkout_session(request):
     if request.method == "GET":
-        domain_url = "http://localhost:8000/"
+        domain_url = settings.HOST
         stripe.api_key = settings.STRIPE_SECRET_KEY
         try:
             # Create new Checkout Session for the order
@@ -82,21 +139,6 @@ def create_checkout_session(request):
             return JsonResponse({"sessionId": checkout_session["id"]})
         except Exception as e:
             return JsonResponse({"error": str(e)})
-
-
-def create_stripe_user(user: User):
-    try:
-        # Create a customer
-        customer = stripe.Customer.create(
-            name=f"{user.first_name} {user.last_name}",
-            email=user.email,
-        )
-
-        return customer.id
-
-        return JsonResponse({"customer_id": customer.id})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
 
 
 @csrf_exempt

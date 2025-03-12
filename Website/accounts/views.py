@@ -15,6 +15,9 @@ from django.contrib.auth.decorators import login_required
 import time
 from .decorators.oauth_required import oauth_required
 from payments.views import create_stripe_user
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @oauth_required
@@ -91,11 +94,6 @@ def login_view(request):
     return render(request, "accounts-login.html", {"next": next_url})
 
 
-import logging
-
-logger = logging.getLogger(__name__)
-
-
 @login_required
 def oauth2_callback(request):
     code = request.GET.get("code")
@@ -144,7 +142,9 @@ def oauth2_callback(request):
             if refresh_token:
                 request.session["refresh_token"] = refresh_token
 
-            return redirect(next_url)  # Redirect to the home page after successful login
+            return redirect(
+                next_url
+            )  # Redirect to the home page after successful login
         else:
             logger.error("No access token returned in the response.")
             return JsonResponse({"error": "No access token returned"}, status=400)
