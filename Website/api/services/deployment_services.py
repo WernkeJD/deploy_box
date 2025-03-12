@@ -21,7 +21,9 @@ def get_deployments(request: Request, deployment_id=None) -> Response:
     if deployment_id:
         deployment = Deployments.objects.filter(id=deployment_id, user=user).first()
         if not deployment:
-            return Response({"error": "Deployment not found."}, status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Deployment not found."}, status.HTTP_404_NOT_FOUND
+            )
 
         return Response({"data": deployment}, status.HTTP_200_OK)
 
@@ -35,15 +37,17 @@ def add_deployment(request: Request) -> Response:
     user = request.user
 
     stack_id = request.data.get("stack_id")
-    name= request.data.get("name")
+    name = request.data.get("name")
 
     if not all([stack_id, name]):
-        return Response({"error": "Stack ID and name are required."}, status.HTTP_400_BAD_REQUEST)
-    
+        return Response(
+            {"error": "Stack ID and name are required."}, status.HTTP_400_BAD_REQUEST
+        )
+
     stack = Stacks.objects.filter(id=stack_id, user=user).first()
     if not stack:
         return Response({"error": "Stack not found."}, status.HTTP_404_NOT_FOUND)
-        
+
     deployment = Deployments.objects.create(
         stack=stack,
         user=user,
@@ -54,7 +58,7 @@ def add_deployment(request: Request) -> Response:
 
     try:
 
-        google_cli_key = gcp_utils.create_service_account(deployment_id)
+        google_cli_key = gcp_utils.create_service_account_and_resources(deployment_id)
         deployment.google_cli_key = google_cli_key
 
         deployment.save()
@@ -72,7 +76,7 @@ def add_deployment(request: Request) -> Response:
         backend_url = gcp_utils.deploy_service(
             f"backend-{deployment_id}", backend_image, {"MONGO_URI": mongo_db_uri}
         )
-    
+
         deployment_backend = DeploymentBackend.objects.create(
             deployment=deployment,
             url=backend_url,
@@ -107,8 +111,6 @@ def add_deployment(request: Request) -> Response:
             {"error": "Failed to create service account."},
             status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
-    
-
 
     return Response(
         {
@@ -127,29 +129,35 @@ def get_deployment_google_cli_key(request: Request, deployment_id: str) -> Respo
 
     google_cli_key = deployment.google_cli_key
     if not google_cli_key:
-        return Response({"error": "Google CLI key not found."}, status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Google CLI key not found."}, status.HTTP_404_NOT_FOUND
+        )
 
     return Response({"data": google_cli_key}, status.HTTP_200_OK)
+
 
 def patch_deployment(request: Request, deployment_id: str) -> Response:
     user = request.user
     deployment = Deployments.objects.filter(id=deployment_id, user=user).first()
     if not deployment:
         return Response({"error": "Deployment not found."}, status.HTTP_404_NOT_FOUND)
-    
-    deployment_backend = request.data.get("backend")
-    deployment_frontend = request.data.get("frontend")
-    
-    if not all([deployment_backend, deployment_frontend]):
-        return Response({"error": "Backend and frontend image urls are required."}, status.HTTP_400_BAD_REQUEST)
-    
+
+    backend_image = request.data.get("backend_image")
+    frontend_image = request.data.get("frontend_image")
+
+    if not all([backend_image, frontend_image]):
+        return Response(
+            {"error": "Backend and frontend images are required."},
+            status.HTTP_400_BAD_REQUEST,
+        )
+
     gcp_utils.refresh_service(
         f"backend-{deployment_id}",
-        deployment_backend.image_url,
+        backend_image,
     )
     gcp_utils.refresh_service(
         f"frontend-{deployment_id}",
-        deployment_frontend.image_url,
+        frontend_image,
     )
     return Response({"message": "Deployment updated successfully."}, status.HTTP_200_OK)
 

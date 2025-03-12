@@ -8,6 +8,7 @@ from django.conf import settings
 
 mongo_db_token = settings.MONGO_DB.get("TOKEN")
 
+
 def get_mongodb_token() -> None:
     global mongo_db_token
 
@@ -20,7 +21,7 @@ def get_mongodb_token() -> None:
     auth = (settings.MONGO_DB.get("CLIENT_ID"), settings.MONGO_DB.get("CLIENT_SECRET"))
     response = requests.post(url, data=payload, headers=headers, auth=auth)
     response.raise_for_status()
-    
+
     mongo_db_token = response.json().get("access_token")
 
 
@@ -58,12 +59,12 @@ def request_helper(url, method="GET", data=None):
 
         return response
 
+
 def deploy_mongodb_database(deployment_id: str) -> str:
     database_name = f"db-{deployment_id}"
-    username = f"deployBoxUser-{deployment_id}"
+    username = f"deployBoxUser{deployment_id}"
     password = hashlib.sha256(str(time.time()).encode()).hexdigest()[:12]
     project_id = settings.MONGO_DB.get("PROJECT_ID")
-    
 
     # Check if user already exists
     response = request_helper(
@@ -88,10 +89,11 @@ def deploy_mongodb_database(deployment_id: str) -> str:
             f"/groups/{project_id}/databaseUsers", "POST", user_data
         )
 
+        # TODO: Check if the user was created successfully
+
     connection_string = f"mongodb+srv://{username}:{password}@cluster0.yjaoi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
     return connection_string
-
 
     # db = client[database_name]
 
@@ -100,4 +102,3 @@ def deploy_mongodb_database(deployment_id: str) -> str:
 
     # Print the stats
     # print(stats.get("storageSize"))
-

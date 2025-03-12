@@ -1,8 +1,11 @@
 import subprocess
 import os
-from deploy_box_cli.helpers.auth import AuthHelper 
+from deploy_box_cli.helpers.auth import AuthHelper
+from deploy_box_cli.helpers.docker import DockerHelper
+import time
 
-class GCPHelper():
+
+class GCPHelper:
     def __init__(self, auth: AuthHelper, cli_dir: str):
         self.auth = auth
         self.gcloud_cli_path = os.path.join(
@@ -23,15 +26,13 @@ class GCPHelper():
             print(f"Error: {response.status_code}")
             print(f"Error: {response.json()['error']}")
             return
-        
+
         google_cli_key = response.json()["data"]
 
         # TODO: Find a secure way to save the Google CLI key
         # Save the Google CLI key to a file
 
-        self.gcloud_cli_key_path = os.path.join(
-            f"google_cli_key_{deployment_id}.json"
-        )
+        self.gcloud_cli_key_path = os.path.join(f"google_cli_key_{deployment_id}.json")
         self.deployment_id = deployment_id
 
         # TODO: Find a secure way to save the Google CLI key
@@ -45,11 +46,27 @@ class GCPHelper():
         if not self.gcloud_cli_key_path:
             print("Google CLI key path is not set.")
             return
-        
+
         # Initialize the gcloud CLI
         try:
-            subprocess.run([self.gcloud_cli_path, "auth", "activate-service-account", f"--key-file={self.gcloud_cli_key_path}"], check=True)
-            subprocess.run([self.gcloud_cli_path, "auth", "configure-docker", "us-central1-docker.pkg.dev"], check=True)
+            subprocess.run(
+                [
+                    self.gcloud_cli_path,
+                    "auth",
+                    "activate-service-account",
+                    f"--key-file={self.gcloud_cli_key_path}",
+                ],
+                check=True,
+            )
+            subprocess.run(
+                [
+                    self.gcloud_cli_path,
+                    "auth",
+                    "configure-docker",
+                    "us-central1-docker.pkg.dev",
+                ],
+                check=True,
+            )
         except subprocess.CalledProcessError as e:
             print(f"Error initializing gcloud CLI: {e}")
             raise
@@ -60,7 +77,7 @@ class GCPHelper():
         if not self.gcloud_cli_key_path:
             print("Google CLI key path is not set.")
             return
-        
+
         bucket_name = f"deploy-box-bucket-{self.deployment_id}"
         # Upload the source code to the GCP bucket
         try:
@@ -70,13 +87,14 @@ class GCPHelper():
                     "storage",
                     "cp",
                     file_path,
-                    f"gs://{bucket_name}/",
+                    f"gs://{bucket_name}/file.tar",
                 ],
                 check=True,
             )
 
             # Remove the local file after upload
             os.remove(file_path)
+
         except subprocess.CalledProcessError as e:
             print(f"Error uploading to GCP bucket: {e}")
             raise
@@ -84,24 +102,37 @@ class GCPHelper():
             print(f"Unexpected error: {e}")
         print("Upload completed successfully.")
 
-    def upload_to_artifact_registry(self, image_name: str, source_directory: str):
+    def upload_to_artifact_registry(self) -> tuple[str, str]:
         if not self.gcloud_cli_key_path:
             print("Google CLI key path is not set.")
             return
-        
+
         # Upload the docker image to the GCP artifact registry
         try:
-            subprocess.run(
-                [
-                    self.gcloud_cli_path,
-                    "builds",
-                    "submit",
-                    "--tag",
-                    image_name,
-                    source_directory,
-                ],
-                check=True,
+            # Build the frontend image
+            frontend_image_name = f"us-central1-docker.pkg.dev/deploy-box/deploy-box-repo-{self.deployment_id}/frontend:{int(time.time())}"
+            source_directory = os.path.join(os.getcwd(), "frontend")
+            DockerHelper.build_image(
+                frontend_image_name,
+                source_directory,
             )
+
+            # Push the frontend image to the GCP artifact registry
+            DockerHelper.push_image(frontend_image_name)
+
+            # Build the backend image
+            backend_image_name = f"us-central1-docker.pkg.dev/deploy-box/deploy-box-repo-{self.deployment_id}/backend:{int(time.time())}"
+            source_directory = os.path.join(os.getcwd(), "backend")
+            DockerHelper.build_image(
+                backend_image_name,
+                source_directory,
+            )
+
+            # Push the backend image to the GCP artifact registry
+            DockerHelper.push_image(backend_image_name)
+
+            return frontend_image_name, backend_image_name
+
         except subprocess.CalledProcessError as e:
             print(f"Error uploading to GCP artifact registry: {e}")
             raise

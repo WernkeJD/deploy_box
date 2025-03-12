@@ -41,14 +41,17 @@ def stack_operations(request: Request, stack_id=None):
     # PATCH: Update a stack
     elif request.method == "PATCH":
         return stack_services.update_stack(request, stack_id)
-    
+
+
 @api_view(["GET", "POST", "PATCH"])
 def deployment_operations(request: Request, deployment_id=None):
     # GET: Fetch available deployments or a specific deployment
     if request.method == "GET":
-        # TODO: Add logic to download deployment code
+        # TODO: Add logic to download deployment source code
         if request.path.endswith("/key"):
-            return deployment_services.get_deployment_google_cli_key(request, deployment_id)
+            return deployment_services.get_deployment_google_cli_key(
+                request, deployment_id
+            )
         else:
             return deployment_services.get_deployments(request, deployment_id)
 
@@ -57,8 +60,8 @@ def deployment_operations(request: Request, deployment_id=None):
         return deployment_services.add_deployment(request)
 
     # PATCH: Update a deployment
-    # elif request.method == "PATCH":
-    #     return deployment_services.patch_deployment(request)
+    elif request.method == "PATCH":
+        return deployment_services.patch_deployment(request, deployment_id)
 
 
 @api_view(["GET"])
@@ -66,6 +69,7 @@ def get_available_deployments(request):
     user = request.user
     deployments = user.deployments_set.all()
     return Response(deployments.values(), status=status.HTTP_200_OK)
+
 
 @api_view(["GET"])
 def get_deployment_details(request: Request, deployment_id: str):

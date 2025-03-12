@@ -6,13 +6,16 @@ from deploy_box_cli.helpers.deployment import DeploymentHelper
 
 # Get current working directory
 import os
+
 current_working_dir = os.getcwd()
 
 # Set current working directory
+# For testing assuming that they are in their code directory
 os.chdir(os.path.join(current_working_dir, "MERN"))
 current_working_dir = os.getcwd()
 
 print(f"Current working directory: {current_working_dir}")
+
 
 class DeployCLI(cmd.Cmd):
     prompt = "Deploy_Box >> "

@@ -65,9 +65,7 @@ class DeploymentHelper:
         if not response.ok:
             print(f"Error: {response.json()['error']}")
 
-            raise Exception(
-                f"Error: {response.json()['error']}"
-            )
+            raise Exception(f"Error: {response.json()['error']}")
 
         return response.json().get("data", [])
 
@@ -125,16 +123,18 @@ class DeploymentHelper:
                 "deployments",
                 data=deployment_data,
             )
-            
 
             if not response.ok:
                 print(f"Error: {response.status_code}")
                 print(f"Error: {response.json()['error']}")
                 return
-            
+
             deployment_id = response.json()["data"]["id"]
 
             self.gcp.get_gcloud_cli_key(deployment_id)
+            compressed_file = self.compress_source_code()
+
+            self.gcp.upload_to_bucket(compressed_file)
 
         # Upload to existing deployment
         else:
@@ -144,8 +144,16 @@ class DeploymentHelper:
             compressed_file = self.compress_source_code()
 
             self.gcp.upload_to_bucket(compressed_file)
+            frontend_image, backend_image = self.gcp.upload_to_artifact_registry()
 
-
+            self.auth.request_api(
+                "PATCH",
+                f"deployments/{deployment_id}",
+                data={
+                    "frontend_image": frontend_image,
+                    "backend_image": backend_image,
+                },
+            )
 
     def compress_source_code(self):
         """Compress the source code into a tar file."""
