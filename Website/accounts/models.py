@@ -7,8 +7,5 @@ class UserProfile(models.Model):
     birthdate = models.DateField()
     stripe_customer_id = models.CharField(max_length=255, blank=True)
 
-    # TODO: This should be more secure
-    google_cli_key = models.TextField(blank=True)
-
     def __str__(self):
         return self.user.username

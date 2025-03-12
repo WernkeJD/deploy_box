@@ -5,8 +5,15 @@ from rest_framework import status
 from ..serializers.stacks_serializer import StacksSerializer
 import requests
 from django.http import FileResponse
+from google.cloud import storage
+import os
+from google.oauth2 import service_account
+from django.shortcuts import get_object_or_404
+import logging
 
 DEPLOY_BOX_API_URL = "http://34.68.6.54:5000/api"
+
+logger = logging.getLogger(__name__)
 
 
 def get_stacks(request: Request, stack_id: str = None) -> Response:
@@ -68,40 +75,74 @@ def update_stack(request: Request, stack_id: str) -> Response:
 
     return Response({"message": "Stack updated successfully"}, status.HTTP_200_OK)
 
-
-# Function to handle stack download
 def download_stack(request: Request, stack_id: str = None) -> Response:
-    user = request.user
-
-    print(stack_id)
     if not stack_id:
-        return Response({"error": "Stack ID is required."}, status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Stack ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Get the user's stack or return 404
+    stack = get_object_or_404(Stacks, id=stack_id, user=request.user)
+
+    # Load service account credentials
+    credentials_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'key.json')
+    
+    try:
+        credentials = service_account.Credentials.from_service_account_file(credentials_path)
+        client = storage.Client(credentials=credentials)
+    except Exception as e:
+        logger.error(f"Failed to initialize Google Cloud Storage client: {e}")
+        return Response({"error": "Internal server error."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    bucket_name = "deploy_box_bucket"
+    blob_name = f"{stack.type.upper()}.tar"
 
     try:
-        stack = Stacks.objects.get(id=stack_id, user=user)
-    except Stacks.DoesNotExist:
-        return Response({"error": "Stack not found."}, status.HTTP_404_NOT_FOUND)
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
 
-    try:
-        source_code = requests.get(
-            f"{DEPLOY_BOX_API_URL}/code/{stack.type}", stream=True
-        )
+        # Ensure the file exists before attempting to download
+        if not blob.exists(client):
+            return Response({"error": "File not found in bucket"}, status=status.HTTP_404_NOT_FOUND)
 
-        if source_code.status_code != 200:
-            return Response(
-                {"error": "Error downloading stack"},
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-        # Use FileResponse to stream the tar file as a binary response
-        response = FileResponse(
-            source_code.raw, content_type="application/x-tar", status=status.HTTP_200_OK
-        )
-        response["Content-Disposition"] = f'attachment; filename="{stack.type}.tar"'
+        # Stream the file response instead of loading everything into memory
+        response = FileResponse(blob.open("rb"), content_type="application/x-tar")
+        response["Content-Disposition"] = f'attachment; filename="{blob_name}"'
         return response
 
-    except requests.RequestException as e:
-        return Response(
-            {"error": f"Error downloading stack: {str(e)}"},
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+    except Exception as e:
+        logger.error(f"Error downloading stack {stack_id}: {e}")
+        return Response({"error": "Error downloading stack."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    # user = request.user
+
+    # print(stack_id)
+    # if not stack_id:
+    #     return Response({"error": "Stack ID is required."}, status.HTTP_400_BAD_REQUEST)
+
+    # try:
+    #     stack = Stacks.objects.get(id=stack_id, user=user)
+    # except Stacks.DoesNotExist:
+    #     return Response({"error": "Stack not found."}, status.HTTP_404_NOT_FOUND)
+
+    # try:
+    #     source_code = requests.get(
+    #         f"{DEPLOY_BOX_API_URL}/code/{stack.type}", stream=True
+    #     )
+
+    #     if source_code.status_code != 200:
+    #         return Response(
+    #             {"error": "Error downloading stack"},
+    #             status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #         )
+
+    #     # Use FileResponse to stream the tar file as a binary response
+    #     response = FileResponse(
+    #         source_code.raw, content_type="application/x-tar", status=status.HTTP_200_OK
+    #     )
+    #     response["Content-Disposition"] = f'attachment; filename="{stack.type}.tar"'
+    #     return response
+
+    # except requests.RequestException as e:
+    #     return Response(
+    #         {"error": f"Error downloading stack: {str(e)}"},
+    #         status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #     )

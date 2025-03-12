@@ -2,11 +2,13 @@ import os
 import subprocess
 from deploy_box_cli.helpers.auth import AuthHelper
 from deploy_box_cli.helpers.menu import MenuHelper
+from deploy_box_cli.helpers.gcp import GCPHelper
 
 
 class DeploymentHelper:
-    def __init__(self, auth: AuthHelper):
+    def __init__(self, auth: AuthHelper, cli_dir: str):
         self.auth = auth
+        self.gcp = GCPHelper(auth, cli_dir)
 
     def get_available_stacks(self):
         """Get a list of stacks for the user"""
@@ -20,6 +22,7 @@ class DeploymentHelper:
 
     def download_source_code(self):
         """Download and extract source code for the selected stack."""
+        print("Downloading source code...")
         stacks = self.get_available_stacks()
 
         data_options = [f"{stack['type']}" for stack in stacks]
@@ -57,18 +60,20 @@ class DeploymentHelper:
 
     def get_available_deployments(self):
         """Get a list of deployments for the user"""
-        response = self.auth.request_api("GET", "get_available_deployments")
+        response = self.auth.request_api("GET", "deployments")
 
-        if response.status_code != 200:
-            # print(f"Error: {response.text}")
-            return
+        if not response.ok:
+            print(f"Error: {response.json()['error']}")
 
-        return response.json()
+            raise Exception(
+                f"Error: {response.json()['error']}"
+            )
+
+        return response.json().get("data", [])
 
     def upload_source_code(self):
-        compressed_file = self.compress_source_code()
+        # compressed_file = self.compress_source_code()
 
-        return
         available_deployments = self.get_available_deployments()
 
         data_options = [f"{deployment['name']}" for deployment in available_deployments]
@@ -90,6 +95,7 @@ class DeploymentHelper:
             deployment_name = input("Enter deployment name: ")
 
             # TODO: Validate deployment name for special characters
+
             if not deployment_name:
                 print("Error: Deployment name is required.")
                 return
@@ -110,37 +116,36 @@ class DeploymentHelper:
                 print("Operation cancelled.")
                 return
 
-            deployment_stack_id = available_stacks[selected_idx]["id"]
+            stack_id = available_stacks[selected_idx]["id"]
 
-            deployment_data = {"name": deployment_name, "stack_id": deployment_stack_id}
+            deployment_data = {"name": deployment_name, "stack_id": stack_id}
 
-            # Open the file in binary mode and stream it
-            compressed_file = self.compress_source_code()
-            files = {"file": open("./MERN.tar", "rb")}
-
-            self.auth.request_api(
+            response = self.auth.request_api(
                 "POST",
-                "upload_deployment",
+                "deployments",
                 data=deployment_data,
-                files=files,
-                stream=True,
             )
+            
+
+            if not response.ok:
+                print(f"Error: {response.status_code}")
+                print(f"Error: {response.json()['error']}")
+                return
+            
+            deployment_id = response.json()["data"]["id"]
+
+            self.gcp.get_gcloud_cli_key(deployment_id)
 
         # Upload to existing deployment
         else:
             deployment_id = available_deployments[selected_idx]["id"]
-            deployment_data = {"deployment-id": deployment_id}
 
-            # Open the file in binary mode and stream it
-            files = {"file": open("./MERN.tar", "rb")}
+            self.gcp.get_gcloud_cli_key(deployment_id)
+            compressed_file = self.compress_source_code()
 
-            self.auth.request_api(
-                "PATCH",
-                "patch_deployment",
-                data=deployment_data,
-                files=files,
-                stream=True,
-            )
+            self.gcp.upload_to_bucket(compressed_file)
+
+
 
     def compress_source_code(self):
         """Compress the source code into a tar file."""

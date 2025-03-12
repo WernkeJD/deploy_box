@@ -1,8 +1,0 @@
-flask
-python-dotenv
-requests
-selenium
-webdriver-manager
-google-cloud-storage
-google-cloud-run
-google-cloud-iam

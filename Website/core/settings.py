@@ -195,3 +195,12 @@ LOGOUT_REDIRECT_URL = "/accounts/login/"
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
 STRIPE_ENDPOINT_SECRET = os.environ.get("STRIPE_ENDPOINT_SECRET")
+
+MONGO_DB = {
+    "ORG_ID": os.environ.get("MONGODB_ORG_ID"),
+    "PROJECT_ID": os.environ.get("MONGODB_PROJECT_ID"),
+    "CLIENT_ID": os.environ.get("MONGODB_CLIENT_ID"),
+    "CLIENT_SECRET": os.environ.get("MONGODB_CLIENT_SECRET"),
+}
+
+
