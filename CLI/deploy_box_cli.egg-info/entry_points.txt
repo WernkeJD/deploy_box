@@ -1,2 +1,0 @@
-[console_scripts]
-deploy-box-cli = deploy_box_cli.cli:main
