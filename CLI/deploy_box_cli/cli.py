@@ -26,8 +26,6 @@ class DeployCLI(cmd.Cmd):
         self.docker = DockerHelper()
         self.deployment = DeploymentHelper(cli_dir=self.cli_dir)
 
-        self.deployment.upload_source_code()
-
     def do_login(self, _):
         """Login to the CLI"""
         self.auth.login()

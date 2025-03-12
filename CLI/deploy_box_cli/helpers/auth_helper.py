@@ -85,6 +85,8 @@ class AuthHelper:
         print("Logged out successfully!")
 
     def refresh_access_token(self):
+        # TODO: Fix this
+
         """Refresh the access token using the refresh token."""
         if not self.refresh_token:
             print("No refresh token found. Please log in again.")

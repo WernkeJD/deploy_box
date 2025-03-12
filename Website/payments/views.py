@@ -5,6 +5,7 @@ from django.http import HttpResponse
 from api.models import Stacks
 from django.contrib.auth.models import User
 from accounts.models import UserProfile
+from api.models import AvailableStacks
 import json
 import time
 import stripe
@@ -107,20 +108,14 @@ def create_checkout_session(request):
         domain_url = settings.HOST
         stripe.api_key = settings.STRIPE_SECRET_KEY
         try:
-            # Create new Checkout Session for the order
-            # Other optional params include:
-            # [billing_address_collection] - to display billing address details on the page
-            # [customer] - if you have an existing Stripe Customer ID
-            # [payment_intent_data] - capture the payment later
-            # [customer_email] - prefill the email input in the form
-            # For full details see https://stripe.com/docs/api/checkout/sessions/create
-
-            # ?session_id={CHECKOUT_SESSION_ID} means the redirect will have the session ID set as a query param
             checkout_session = stripe.checkout.Session.create(
-                client_reference_id="1",
+                metadata={
+                    "user_id": request.user.id,
+                    "stack_id": "2",
+                },
                 success_url=domain_url
-                + "payments/success?session_id={CHECKOUT_SESSION_ID}",
-                cancel_url=domain_url + "payments/cancelled/",
+                + "/payments/success?session_id={CHECKOUT_SESSION_ID}",
+                cancel_url=domain_url + "/payments/cancelled",
                 payment_method_types=["card"],
                 mode="payment",
                 line_items=[
@@ -186,6 +181,7 @@ def record_usage(subscription_item_id, quantity):
 
 @csrf_exempt
 def stripe_webhook(request):
+    # Use `stripe listen --forward-to http://127.0.0.1:8000/payments/webhook` to listen for events
     stripe.api_key = settings.STRIPE_SECRET_KEY
     endpoint_secret = settings.STRIPE_ENDPOINT_SECRET
     payload = request.body
@@ -207,27 +203,18 @@ def stripe_webhook(request):
 
         data = json.loads(payload)
 
-        user = data["data"]["object"]["client_reference_id"]
-        stack_type = "MEAN"
-        variant = "PRO"
-        version = "0.0.1"
-
-        print(json.dumps(data, indent=2))
-        print(user)
-
-        if not type or not variant or not version:
-            return HttpResponse(status=400)
+        metadata = data["data"]["object"]["metadata"]
+        user_id = metadata.get("user_id")
+        stack_id = metadata.get("stack_id")
 
         # Check if the stack already exists
-        if Stacks.objects.filter(
-            user=user, type=stack_type, variant=variant, version=version
-        ).exists():
+        if Stacks.objects.filter(user=user_id, stack=stack_id).exists():
             return HttpResponse(status=400)
 
-        user_obj = User.objects.get(id=user)
-        Stacks.objects.create(
-            user=user_obj, type=stack_type, variant=variant, version=version
-        )
+        user = User.objects.get(id=user_id)
+        avaiable_stack = AvailableStacks.objects.get(id=stack_id)
+
+        Stacks.objects.create(user=user, stack=avaiable_stack)
         return HttpResponse(status=200)
 
     return HttpResponse(status=200)

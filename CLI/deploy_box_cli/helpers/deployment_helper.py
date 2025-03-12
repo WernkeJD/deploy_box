@@ -1,14 +1,16 @@
 import os
 import subprocess
+from .decorators import singleton
 
 
+@singleton
 class DeploymentHelper:
     def __init__(self, cli_dir: str):
         from deploy_box_cli.helpers import AuthHelper, GCPHelper, MenuHelper
 
         self.auth = AuthHelper()
         self.gcp = GCPHelper(cli_dir)
-        self.menu = MenuHelper
+        self.menu = MenuHelper()
 
     def get_available_stacks(self):
         """Get a list of stacks for the user"""

@@ -1,6 +1,4 @@
-import subprocess
 from google.cloud import storage
-from deploy_box_cli.helpers import AuthHelper, DockerHelper
 
 import os
 import time
@@ -8,11 +6,16 @@ from google.oauth2 import service_account
 import docker
 import google.auth
 import google.auth.transport.requests
+from .decorators import singleton
 
 
+@singleton
 class GCPHelper:
     def __init__(self, cli_dir: str):
+        from deploy_box_cli.helpers import AuthHelper, DockerHelper
+
         self.auth = AuthHelper()
+        self.docker = DockerHelper()
         self.project_id = "deploy-box"
         self.gcloud_key_path = None
         self.deployment_id = None
@@ -106,13 +109,13 @@ class GCPHelper:
         # Build and push the frontend image
         frontend_image_name = f"us-central1-docker.pkg.dev/deploy-box/deploy-box-repo-{self.deployment_id}/frontend:{int(time.time())}"
         frontend_source_directory = os.path.join(os.getcwd(), "frontend")
-        DockerHelper.build_image(frontend_image_name, frontend_source_directory)
-        DockerHelper.push_image(frontend_image_name)
+        self.docker.build_image(frontend_image_name, frontend_source_directory)
+        self.docker.push_image(frontend_image_name)
 
         # Build and push the backend image
         backend_image_name = f"us-central1-docker.pkg.dev/deploy-box/deploy-box-repo-{self.deployment_id}/backend:{int(time.time())}"
         backend_source_directory = os.path.join(os.getcwd(), "backend")
-        DockerHelper.build_image(backend_image_name, backend_source_directory)
-        DockerHelper.push_image(backend_image_name)
+        self.docker.build_image(backend_image_name, backend_source_directory)
+        self.docker.push_image(backend_image_name)
 
         return frontend_image_name, backend_image_name

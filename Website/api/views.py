@@ -65,12 +65,5 @@ def deployment_operations(request: Request, deployment_id=None):
 
 
 @api_view(["GET"])
-def get_available_deployments(request):
-    user = request.user
-    deployments = user.deployments_set.all()
-    return Response(deployments.values(), status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
 def get_deployment_details(request: Request, deployment_id: str):
     return deployment_services.get_deployment_cost(request, deployment_id)

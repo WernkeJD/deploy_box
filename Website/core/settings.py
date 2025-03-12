@@ -130,12 +130,11 @@ DATABASES = {
         "PASSWORD": os.environ.get("DB_PASSWORD"),
         "HOST": os.environ.get("DB_HOST"),
         "PORT": os.environ.get("DB_PORT"),
-        'OPTIONS': {
-            'sslrootcert': r'"C:\Users\jacob\OneDrive\Documents\ca.crt"',  # Path to the SSL certificate
+        "OPTIONS": {
+            "sslrootcert": r'"C:\Users\jacob\OneDrive\Documents\ca.crt"',  # Path to the SSL certificate
         },
     }
 }
-
 
 
 # Password validation
@@ -202,5 +201,3 @@ MONGO_DB = {
     "CLIENT_ID": os.environ.get("MONGODB_CLIENT_ID"),
     "CLIENT_SECRET": os.environ.get("MONGODB_CLIENT_SECRET"),
 }
-
-

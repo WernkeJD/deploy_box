@@ -13,5 +13,6 @@ urlpatterns = [
     path("add-card/", views.add_card_view),
     path("success/", views.success_view),
     path("cancelled/", views.cancelled_view),
+    path("webhook", views.stripe_webhook),
     path("webhook/", views.stripe_webhook),
 ]

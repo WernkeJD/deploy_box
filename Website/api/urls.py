@@ -14,7 +14,7 @@ urlpatterns = [
         views.deployment_operations,
         name="get_update_deployment",
     ),
-      path(
+    path(
         "deployments/<int:deployment_id>/key",
         views.deployment_operations,
         name="get_deployment_google_cli_key",

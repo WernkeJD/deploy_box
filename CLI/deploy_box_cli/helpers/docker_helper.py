@@ -2,8 +2,10 @@ import subprocess
 import sys
 import os
 import docker
+from .decorators import singleton
 
 
+@singleton
 class DockerHelper:
     @staticmethod
     def check_docker():
