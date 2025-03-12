@@ -1,7 +1,7 @@
 import os
 import subprocess
-from helpers.auth import AuthHelper
-from helpers.menu import MenuHelper
+from deploy_box_cli.helpers.auth import AuthHelper
+from deploy_box_cli.helpers.menu import MenuHelper
 
 
 class DeploymentHelper:
@@ -17,14 +17,6 @@ class DeploymentHelper:
             return
 
         return response.json().get("data", [])
-
-        data_options = [
-            f"{stack['variant']} {stack['type']} : {stack['version']}" for stack in data
-        ]
-
-        selected_idx, _ = MenuHelper.menu(data_options, "Select a stack to deploy:")
-
-        return data[selected_idx]["id"], data[selected_idx]["type"]
 
     def download_source_code(self):
         """Download and extract source code for the selected stack."""

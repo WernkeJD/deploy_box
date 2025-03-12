@@ -1,0 +1,18 @@
+Metadata-Version: 2.2
+Name: deploy_box_cli
+Version: 0.1.1
+Summary: CLI for managing Deploy Box operations
+Author: Jacob Wernke
+Author-email: Wernke.jacob@gmail.com
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Dist: requests
+Requires-Dist: pkce
+Requires-Dist: keyring
+Requires-Dist: readchar
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: requires-dist
+Dynamic: summary

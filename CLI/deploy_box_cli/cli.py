@@ -1,9 +1,8 @@
 import cmd
-import os
 
-from helpers.auth import AuthHelper
-from helpers.docker import DockerHelper
-from helpers.deployment import DeploymentHelper
+from deploy_box_cli.helpers.auth import AuthHelper
+from deploy_box_cli.helpers.docker import DockerHelper
+from deploy_box_cli.helpers.deployment import DeploymentHelper
 
 
 class DeployCLI(cmd.Cmd):

@@ -70,6 +70,7 @@ def login_view(request):
 
             # Store the code verifier in the session
             request.session["code_verifier"] = code_verifier
+            request.session["next_url"] = request.POST.get("next")
 
             # Redirect to the OAuth2 authorization page after login
             client_id = settings.OAUTH2_FRONTEND_SETTINGS["client_id"]
@@ -85,7 +86,9 @@ def login_view(request):
             # Handle failed login (return an error, show a message, etc.)
             return HttpResponse("Invalid credentials", status=401)
 
-    return render(request, "accounts-login.html")
+    next_url = request.GET.get("next")
+
+    return render(request, "accounts-login.html", {"next": next_url})
 
 
 import logging
@@ -97,6 +100,7 @@ logger = logging.getLogger(__name__)
 def oauth2_callback(request):
     code = request.GET.get("code")
     code_verifier = request.session.get("code_verifier")
+    next_url = request.session.get("next_url", "/")
 
     if not code or not code_verifier:
         logger.error("Missing code or code_verifier.")
@@ -140,7 +144,7 @@ def oauth2_callback(request):
             if refresh_token:
                 request.session["refresh_token"] = refresh_token
 
-            return redirect("/")  # Redirect to the home page after successful login
+            return redirect(next_url)  # Redirect to the home page after successful login
         else:
             logger.error("No access token returned in the response.")
             return JsonResponse({"error": "No access token returned"}, status=400)
