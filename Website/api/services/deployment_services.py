@@ -11,7 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from api.serializers import DeploymentsSerializer
 from api.utils import gcp_utils, mongodb_utils
-
+import os
 
 # Function to get all deployments or a specific deployment
 def get_deployments(request: Request, deployment_id=None) -> Response:
@@ -54,6 +54,15 @@ def add_deployment(request: Request) -> Response:
     )
 
     deployment_id = str(deployment.id)
+
+    # try:
+    #     current_working_dir = os.getcwd()
+
+    #     service_account_key_path = os.path.join(
+    #         current_working_dir, "api", "utils", f"{"testing"}-key.json"
+    #     )
+
+
 
     try:
 
