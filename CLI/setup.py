@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="deploy_box_cli",
-    version="0.1.1",
+    version="0.1.4",
     description="CLI for managing Deploy Box operations",
     author="Jacob Wernke",
     author_email="Wernke.jacob@gmail.com",

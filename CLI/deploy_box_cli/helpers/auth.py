@@ -14,7 +14,7 @@ import string
 class AuthHelper:
     """Handles OAuth 2.0 PKCE authentication flow, including token storage and retrieval."""
 
-    API_URL = "http://127.0.0.1:8000"
+    API_URL = "https://deploy-box.onrender.com"
     AUTHORIZATION_URL = f"{API_URL}/accounts/o/authorize/"
     TOKEN_URL = f"{API_URL}/accounts/o/token/"
     CLIENT_ID = "QQZwAMHo6G7kJPzI9A4OJxtIkhR5gc8rsEF9Vsgk"

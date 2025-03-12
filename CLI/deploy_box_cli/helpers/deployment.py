@@ -22,13 +22,13 @@ class DeploymentHelper:
         """Download and extract source code for the selected stack."""
         stacks = self.get_available_stacks()
 
-        data_options = [f"{deployment['name']}" for deployment in stacks ]
+        data_options = [f"{stack['type']}" for stack in stacks ]
         extra_options = ["Upload new deployment"]
 
         selected_idx, _ = MenuHelper.menu(data_options=data_options, extra_options=extra_options, prompt="Select a deployment to deploy:")
 
-        stack_type = stacks[selected_idx]["stack_type"]
-        stack_id = stacks[selected_idx]["stack_id"]
+        stack_type = stacks[selected_idx]["type"]
+        stack_id = stacks[selected_idx]["id"]
 
         current_working_dir = os.getcwd()
         file_name = os.path.join(current_working_dir, f"{stack_type}.tar")
