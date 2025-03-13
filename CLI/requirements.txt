@@ -11,7 +11,6 @@ click==8.1.8
 colorama==0.4.6
 cookiecutter==2.6.0
 cryptography==44.0.2
--e git+https://github.com/WernkeJD/deploy_box.git@f9b22b109127864ee669c059722214f6285fc8d2#egg=deploy_box_cli&subdirectory=cli
 Django==5.1.6
 django-browser-reload==1.18.0
 django-environ==0.12.0

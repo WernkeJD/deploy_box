@@ -9,8 +9,8 @@ current_working_dir = os.getcwd()
 
 # Set current working directory
 # For testing assuming that they are in their code directory
-os.chdir(os.path.join(current_working_dir, "MERN"))
-current_working_dir = os.getcwd()
+# os.chdir(os.path.join(current_working_dir, "MERN"))
+# current_working_dir = os.getcwd()
 
 print(f"Current working directory: {current_working_dir}")
 
