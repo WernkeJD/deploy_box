@@ -1,18 +1,9 @@
-from .models import (
-    Stacks,
-    Deployments,
-    DeploymentFrontend,
-    DeploymentBackend,
-    DeploymentDatabase,
-)
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework import status
-from .services import stack_services, deployment_services
-import requests
-from .utils import gcp_utils
+from api.services import stack_services
 
 DEPLOY_BOX_API_URL = "http://34.68.6.54:5000/api"
 # DEPLOY_BOX_API_URL = "http://localhost:5000/api"
@@ -36,34 +27,11 @@ def stack_operations(request: Request, stack_id=None):
 
     # POST: Add a new stack
     elif request.method == "POST":
-        return stack_services.add_stack(request)
+        if request.path.endswith("/deploy"):
+            return stack_services.deploy_stack(request, stack_id)
+        else:
+            return stack_services.add_stack(request)
 
     # PATCH: Update a stack
     elif request.method == "PATCH":
         return stack_services.update_stack(request, stack_id)
-
-
-@api_view(["GET", "POST", "PATCH"])
-def deployment_operations(request: Request, deployment_id=None):
-    # GET: Fetch available deployments or a specific deployment
-    if request.method == "GET":
-        # TODO: Add logic to download deployment source code
-        if request.path.endswith("/key"):
-            return deployment_services.get_deployment_google_cli_key(
-                request, deployment_id
-            )
-        else:
-            return deployment_services.get_deployments(request, deployment_id)
-
-    # POST: Upload a new deployment
-    elif request.method == "POST":
-        return deployment_services.add_deployment(request)
-
-    # PATCH: Update a deployment
-    elif request.method == "PATCH":
-        return deployment_services.patch_deployment(request, deployment_id)
-
-
-@api_view(["GET"])
-def get_deployment_details(request: Request, deployment_id: str):
-    return deployment_services.get_deployment_cost(request, deployment_id)

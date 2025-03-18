@@ -8,6 +8,7 @@ from django.conf import settings
 
 mongo_db_token = None
 
+
 def get_mongodb_token() -> None:
     global mongo_db_token
 
@@ -64,14 +65,15 @@ def request_helper(url, method="GET", data=None):
         return response
 
 
-def deploy_mongodb_database(deployment_id: str) -> str:
+def deploy_mongodb_database(stack_id: str) -> str:
     print("Deploying MongoDB database...")
-    database_name = f"db-{deployment_id}"
-    username = f"deployBoxUser{deployment_id}"
+    database_name = f"db-{stack_id}"
+    username = f"deployBoxUser{stack_id}"
     password = hashlib.sha256(str(time.time()).encode()).hexdigest()[:12]
     project_id = settings.MONGO_DB.get("PROJECT_ID")
 
     # Check if user already exists
+    # TODO: Update password if the user already exists
     response = request_helper(
         f"/groups/{project_id}/databaseUsers/admin/{username}", "GET"
     )
