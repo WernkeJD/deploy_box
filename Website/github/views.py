@@ -169,7 +169,7 @@ def create_github_webhook(request):
     # webhook_secret = secrets.token_hex(32)
 
     # Webhook URL pointing to your backend
-    webhook_url = f"http://50.5.72.176:5000/github/webhooks/{user.id}"
+    webhook_url = f"http://34.66.115.48:7654/github/webhooks/{user.id}"
 
     headers = {
         "Authorization": f"token {github_token}",
