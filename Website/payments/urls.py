@@ -15,4 +15,5 @@ urlpatterns = [
     path("cancelled/", views.cancelled_view),
     path("webhook", views.stripe_webhook),
     path("webhook/", views.stripe_webhook),
+    path('create-invoice/', views.create_invoice),
 ]

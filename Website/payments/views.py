@@ -45,7 +45,6 @@ def stripe_config(request):
         stripe_config = {"publicKey": settings.STRIPE_PUBLISHABLE_KEY}
         return JsonResponse(stripe_config, safe=False)
 
-
 def create_stripe_user(user: User):
     # Create a new customer in Stripe
     try:
@@ -109,6 +108,7 @@ def create_checkout_session(request):
         stripe.api_key = settings.STRIPE_SECRET_KEY
         try:
             checkout_session = stripe.checkout.Session.create(
+                customer=UserProfile.objects.get(user_id= request.user.id).stripe_customer_id,
                 metadata={
                     "user_id": request.user.id,
                     "stack_id": "2",
@@ -129,7 +129,11 @@ def create_checkout_session(request):
                         },
                         "quantity": 1,
                     }
+                    
                 ],
+                payment_intent_data={
+                    "setup_future_usage": "off_session",  # This tells Stripe to save the card for future payments
+                },
             )
             return JsonResponse({"sessionId": checkout_session["id"]})
         except Exception as e:
@@ -218,3 +222,44 @@ def stripe_webhook(request):
         return HttpResponse(status=200)
 
     return HttpResponse(status=200)
+
+
+#new branch work################################################################################################
+
+@csrf_exempt
+def create_invoice(request):
+    if request.method == "POST":
+        try:
+            # Get data from the request body (e.g., customer_id, amount, description)
+            data = json.loads(request.body)
+            customer_id = data['customer_id']  # Existing Stripe customer ID
+            amount = data['amount']  # Amount to charge in cents (e.g., 5000 for $50.00)
+            description = data['description']  # Description of the charge
+
+            # Step 1: Create an invoice item
+            stripe.InvoiceItem.create(
+                customer=customer_id,
+                amount=amount,
+                currency="usd",  # You can change the currency if needed
+                description=description
+            )
+
+            # Step 2: Create the invoice for the customer
+            invoice = stripe.Invoice.create(
+                customer=customer_id,
+                auto_advance=True  # Automatically finalizes and sends the invoice
+            )
+
+            # Step 3: Finalize the invoice (send to customer)
+            invoice.finalize_invoice()
+
+            return JsonResponse({
+                'invoice_id': invoice.id,
+                'status': invoice.status
+            })
+
+        except stripe.error.StripeError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+        except Exception as e:
+            return JsonResponse({'error': 'An error occurred while creating the invoice.'}, status=400)
