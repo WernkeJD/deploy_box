@@ -1,8 +1,7 @@
-from ..models import Stacks
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework import status
-from ..serializers.stacks_serializer import StacksSerializer
+from api.serializers.stacks_serializer import StacksSerializer
 import requests
 from django.http import FileResponse
 from google.cloud import storage
@@ -11,6 +10,9 @@ from google.oauth2 import service_account
 from django.shortcuts import get_object_or_404
 import logging
 from django.conf import settings
+import api.utils.gcp_utils as gcp_utils
+import api.utils.mongodb_utils as mongodb_utils
+from api.models import StackDatabases, StackBackends, Stacks, StackFrontends
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +55,48 @@ def add_stack(request: Request) -> Response:
     return Response({"message": "Stack added successfully"}, status.HTTP_201_CREATED)
 
 
+def deploy_stack(request: Request, stack_id: str) -> Response:
+    stack = get_object_or_404(Stacks, id=stack_id)
+
+    # Create deployment database
+    mongo_db_uri = mongodb_utils.deploy_mongodb_database(stack_id)
+    stack_database = StackDatabases.objects.create(
+        stack=stack,
+        uri=mongo_db_uri,
+    )
+
+    # TODO: Use the backend image from the stack
+    backend_image = "kalebwbishop/mern-backend"
+    print(f"Deploying backend with image: {backend_image}")
+    backend_url = gcp_utils.deploy_service(
+        f"backend-{stack_id}", backend_image, {"MONGO_URI": mongo_db_uri}
+    )
+
+    stack_backend = StackBackends.objects.create(
+        stack=stack,
+        url=backend_url,
+        image_url=backend_image,
+    )
+
+    # TODO: Use the frontend image from the stack
+    frontend_image = "kalebwbishop/mern-frontend"
+    frontend_url = gcp_utils.deploy_service(
+        f"frontend-{stack_id}",
+        frontend_image,
+        {"REACT_APP_BACKEND_URL": backend_url},
+    )
+
+    stack_frontend = StackFrontends.objects.create(
+        stack=stack,
+        url=frontend_url,
+        image_url=frontend_image,
+    )
+
+    return Response(
+        {"message": "Stack deployed successfully"}, status=status.HTTP_200_OK
+    )
+
+
 def update_stack(request: Request, stack_id: str) -> Response:
     if not stack_id:
         return Response(
@@ -74,22 +118,30 @@ def update_stack(request: Request, stack_id: str) -> Response:
 
     return Response({"message": "Stack updated successfully"}, status.HTTP_200_OK)
 
+
 def download_stack(request: Request, stack_id: str = None) -> Response:
     if not stack_id:
-        return Response({"error": "Stack ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Stack ID is required."}, status=status.HTTP_400_BAD_REQUEST
+        )
 
     # Get the user's stack or return 404
     stack = get_object_or_404(Stacks, id=stack_id, user=request.user)
 
     # Load service account credentials
     credentials_path = settings.GCP_KEY_PATH
-    
+
     try:
-        credentials = service_account.Credentials.from_service_account_file(credentials_path)
+        credentials = service_account.Credentials.from_service_account_file(
+            credentials_path
+        )
         client = storage.Client(credentials=credentials)
     except Exception as e:
         logger.error(f"Failed to initialize Google Cloud Storage client: {e}")
-        return Response({"error": "Internal server error."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(
+            {"error": "Internal server error."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
     bucket_name = "deploy_box_bucket"
     blob_name = f"{stack.stack.type.upper()}.tar"
@@ -100,7 +152,9 @@ def download_stack(request: Request, stack_id: str = None) -> Response:
 
         # Ensure the file exists before attempting to download
         if not blob.exists(client):
-            return Response({"error": "File not found in bucket"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "File not found in bucket"}, status=status.HTTP_404_NOT_FOUND
+            )
 
         # Stream the file response instead of loading everything into memory
         response = FileResponse(blob.open("rb"), content_type="application/x-tar")
@@ -109,39 +163,7 @@ def download_stack(request: Request, stack_id: str = None) -> Response:
 
     except Exception as e:
         logger.error(f"Error downloading stack {stack_id}: {e}")
-        return Response({"error": "Error downloading stack."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    # user = request.user
-
-    # print(stack_id)
-    # if not stack_id:
-    #     return Response({"error": "Stack ID is required."}, status.HTTP_400_BAD_REQUEST)
-
-    # try:
-    #     stack = Stacks.objects.get(id=stack_id, user=user)
-    # except Stacks.DoesNotExist:
-    #     return Response({"error": "Stack not found."}, status.HTTP_404_NOT_FOUND)
-
-    # try:
-    #     source_code = requests.get(
-    #         f"{DEPLOY_BOX_API_URL}/code/{stack.type}", stream=True
-    #     )
-
-    #     if source_code.status_code != 200:
-    #         return Response(
-    #             {"error": "Error downloading stack"},
-    #             status.HTTP_500_INTERNAL_SERVER_ERROR,
-    #         )
-
-    #     # Use FileResponse to stream the tar file as a binary response
-    #     response = FileResponse(
-    #         source_code.raw, content_type="application/x-tar", status=status.HTTP_200_OK
-    #     )
-    #     response["Content-Disposition"] = f'attachment; filename="{stack.type}.tar"'
-    #     return response
-
-    # except requests.RequestException as e:
-    #     return Response(
-    #         {"error": f"Error downloading stack: {str(e)}"},
-    #         status.HTTP_500_INTERNAL_SERVER_ERROR,
-    #     )
+        return Response(
+            {"error": "Error downloading stack."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )

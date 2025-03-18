@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "main_site",
     "api",
     "accounts",
+    "github",
 ]
 
 REST_FRAMEWORK = {
@@ -65,9 +66,9 @@ OAUTH2_FRONTEND_SETTINGS = {
 }
 
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
-SESSION_COOKIE_SECURE = True
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = "Strict"
+SESSION_COOKIE_SECURE = False  # Change to True in production
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_SAVE_EVERY_REQUEST = True
 
 
 # essential for taillwind
@@ -202,4 +203,7 @@ MONGO_DB = {
     "CLIENT_SECRET": os.environ.get("MONGODB_CLIENT_SECRET"),
 }
 
-GCP_KEY_PATH=os.environ.get("GCP_KEY_PATH")
+GCP_KEY_PATH = os.environ.get("GCP_KEY_PATH")
+
+GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID")
+GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET")

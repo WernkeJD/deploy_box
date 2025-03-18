@@ -1,133 +1,119 @@
 import os
-import requests
 import subprocess
-from flask import Flask, redirect, request, session, url_for
+from flask import Flask
+from google.cloud import run_v2
+from google.oauth2 import service_account
+from google.auth.transport.requests import Request
+import docker
+import time
+import database
+from cryptography.fernet import Fernet
+
+
+# Set paths and credentials
+current_working_dir = os.getcwd()
+GCP_KEY_PATH = "./key.json"
+PROJECT_ID = "deploy-box"
+REGION = "us-central1"
+name = f"projects/{PROJECT_ID}"
+parent = f"{name}/locations/{REGION}"
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)  # Use a secure secret key
-
-# GitHub OAuth credentials
-CLIENT_ID = "Ov23lilI02RZEMGj4xAX"
-CLIENT_SECRET = "143eeca2aed576e63ca87ff9435bcfbb2be0790c"
-GITHUB_AUTH_URL = "https://github.com/login/oauth/authorize"
-GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
-GITHUB_USER_URL = "https://api.github.com/user"
+connection = database.get_connection()
 
 
-@app.route("/")
-def home():
-    return "Welcome to Deploy Box! <a href='/auth/github'>Login with GitHub</a>"
-
-
-@app.route("/auth/github")
-def github_login():
-    """Redirects users to GitHub OAuth page."""
-    return redirect(f"{GITHUB_AUTH_URL}?client_id={CLIENT_ID}&scope=repo")
-
-
-@app.route("/auth/github/callback")
-def github_callback():
-    """Handles GitHub OAuth callback and fetches user info."""
-    code = request.args.get("code")
-    if not code:
-        return "Authorization failed", 400
-
-    # Exchange code for access token
-    token_response = requests.post(
-        GITHUB_TOKEN_URL,
-        headers={"Accept": "application/json"},
-        data={"client_id": CLIENT_ID, "client_secret": CLIENT_SECRET, "code": code},
-    )
-    token_json = token_response.json()
-    access_token = token_json.get("access_token")
-
-    if not access_token:
-        return "Failed to retrieve access token", 400
-
-    # Fetch user info from GitHub API
-    user_response = requests.get(
-        GITHUB_USER_URL, headers={"Authorization": f"token {access_token}"}
-    )
-    user_data = user_response.json()
-
-    # Store token securely (session for now)
-    session["github_token"] = access_token
-    session["github_user"] = user_data
-
-    return redirect(url_for("dashboard"))
-
-
-@app.route("/dashboard")
-def dashboard():
-    """Displays user info after successful login."""
-    if "github_user" not in session:
-        return redirect(url_for("home"))
-
-    user = session["github_user"]
-    return f"Welcome, {user['login']}! <a href='/logout'>Logout</a>"
-
-
-@app.route("/logout")
-def logout():
-    """Clears session data."""
-    session.clear()
-    return redirect(url_for("home"))
-
-
-GITHUB_REPOS_URL = "https://api.github.com/user/repos"
-
-
-@app.route("/repos")
-def list_repos():
-    """Fetch and display user repositories with a deploy button."""
-    if "github_token" not in session:
-        return redirect(url_for("home"))
-
-    access_token = session["github_token"]
-
-    repo_response = requests.get(
-        GITHUB_REPOS_URL,
-        headers={"Authorization": f"token {access_token}"},
-        params={"per_page": 100},
+# Helper function to load credentials
+def get_credentials(scopes=None):
+    return service_account.Credentials.from_service_account_file(
+        GCP_KEY_PATH, scopes=scopes
     )
 
-    if repo_response.status_code != 200:
-        return "Failed to fetch repositories", 400
 
-    repos = repo_response.json()
-
-    # Display repositories with deploy buttons
-    repo_list = "<h2>Your GitHub Repositories:</h2><ul>"
-    for repo in repos:
-        repo_list += f"""
-            <li>
-                <a href="{repo["html_url"]}">{repo["name"]}</a>
-                <form action="/clone_repo" method="post" style="display:inline;">
-                    <input type="hidden" name="repo_url" value="{repo["clone_url"]}">
-                    <input type="hidden" name="repo_name" value="{repo["name"]}">
-                    <button type="submit">Deploy</button>
-                </form>
-            </li>
-        """
-    repo_list += "</ul>"
-
-    return repo_list
+# Helper function to initialize services client
+def get_services_client():
+    return run_v2.ServicesClient(credentials=get_credentials())
 
 
-def clone_repo(repo_url, repo_name):
+def authenticate_docker():
+    """Authenticate Docker using service account credentials."""
+    credentials = get_credentials(
+        scopes=["https://www.googleapis.com/auth/cloud-platform"],
+    )
+
+    # Get the access token
+    auth_req = Request()
+    credentials.refresh(auth_req)
+    token = credentials.token
+
+    # Authenticate Docker with the Artifact Registry
+    auth_config = {
+        "username": "oauth2accesstoken",
+        "password": token,
+        "registry": "us-central1-docker.pkg.dev",
+    }
+
+    docker.from_env().login(**auth_config)
+
+    print("Authenticated Docker with Google Container Registry")
+
+
+def build_and_push_image(image_name, repo_path, tag: str = "latest"):
+    """Builds and pushes a Docker image to Google Container Registry."""
+    dockerfile_path = os.path.join(repo_path, "Dockerfile")
+
+    if not os.path.exists(repo_path):
+        raise FileNotFoundError(f"Error: Path {repo_path} does not exist.")
+    if not os.path.exists(dockerfile_path):
+        raise FileNotFoundError(f"Error: Dockerfile missing in {repo_path}.")
+
+    image_tag = f"us-central1-docker.pkg.dev/{PROJECT_ID}/deploy-box-repository/{image_name}:{tag}"
+
+    print(f"Building image: {image_tag}")
+
+    authenticate_docker()
+
+    try:
+        subprocess.run(["docker", "build", "-t", image_tag, repo_path], check=True)
+        print("Docker build completed.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error building Docker image: {e}")
+        return
+
+    try:
+        subprocess.run(["docker", "push", image_tag], check=True)
+        print("Docker push completed.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error pushing Docker image: {e}")
+        return
+
+    return image_tag
+
+
+# Function to refresh the service by updating the image
+def refresh_service(service_name, image, tag="latest"):
+    run_client = get_services_client()
+    parent = f"projects/{PROJECT_ID}/locations/{REGION}"
+
+    service_full_name = f"{parent}/services/{service_name}"
+    service = run_client.get_service(name=service_full_name)
+
+    service.template.containers[0].image = f"{image}:{tag}"
+    operation = run_client.update_service(service=service)
+    operation.result()  # Wait for deployment
+    print(f"Refreshed {service_name}")
+
+
+def clone_repo(repo_url, repo_name, access_token):
     """Clones the given GitHub repository to the server."""
-    repo_path = os.path.join("deployed_repos", repo_name)
-
-    if os.path.exists(repo_path):
-        return f"Repository {repo_name} already exists."
+    repo_path = os.path.abspath(
+        os.path.join(
+            current_working_dir,
+            "deployed_repos",
+            f"{repo_name}_{int(time.time())}",
+        )
+    ).replace("\\", "/")
 
     os.makedirs("deployed_repos", exist_ok=True)
-
-    # Get GitHub token from session (you should store this securely)
-    access_token = session.get("github_token")
-
-    if not access_token:
-        return "Missing GitHub access token. Please authenticate again.", 401
 
     # Convert repo URL to use token authentication
     repo_url_with_auth = repo_url.replace(
@@ -136,26 +122,86 @@ def clone_repo(repo_url, repo_name):
 
     try:
         subprocess.run(["git", "clone", repo_url_with_auth, repo_path], check=True)
-        return f"Repository {repo_name} cloned successfully!"
+        return repo_path
     except subprocess.CalledProcessError as e:
-        return f"Failed to clone repository: {str(e)}"
+        print(f"Failed to clone repository: {e}")
+        raise Exception(f"Failed to clone repository: {e}")
 
 
-@app.route("/clone_repo", methods=["POST"])
-def clone_user_repo():
-    """Clones a user-selected repo."""
-    if "github_token" not in session:
-        return redirect(url_for("home"))
+def clone_user_repo(repo_path, stack_id):
 
-    repo_url = request.form.get("repo_url")
-    repo_name = request.form.get("repo_name")
+    tag = str(int(time.time()))
 
-    if not repo_url or not repo_name:
-        return "Invalid request", 400
+    build_and_push_image(f"frontend-{stack_id}", f"{repo_path}/frontend", tag=tag)
+    build_and_push_image(f"backend-{stack_id}", f"{repo_path}/backend", tag=tag)
 
-    result = clone_repo(repo_url, repo_name)
-    return result
+    refresh_service(
+        f"frontend-{stack_id}",
+        f"us-central1-docker.pkg.dev/{PROJECT_ID}/deploy-box-repository/frontend-{stack_id}",
+        tag=tag,
+    )
+    refresh_service(
+        f"backend-{stack_id}",
+        f"us-central1-docker.pkg.dev/{PROJECT_ID}/deploy-box-repository/backend-{stack_id}",
+        tag=tag,
+    )
+
+    return repo_path
+
+
+ENCRYPTION_KEY = os.getenv("GITHUB_TOKEN_KEY")
+
+
+def get_github_access_token(user_id: str):
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT encrypted_token FROM github_tokens WHERE user_id = %s", (user_id,)
+    )
+    rows = cursor.fetchone()
+    cipher = Fernet(ENCRYPTION_KEY)
+    decrypted_token = cipher.decrypt(rows[0].tobytes())
+    decoded_token = decrypted_token.decode()
+    return decoded_token
+
+
+@app.route("/github-webhook", methods=["GET"])
+def get_github_webhook_events():
+    cursor = connection.cursor()
+
+    while True:
+        cursor.execute("SELECT payload, user_id, stack_id FROM github_webhookevents")
+        rows = cursor.fetchall()
+
+        if not rows:
+            return "No more events to process", 200
+
+        for row in rows:
+            try:
+                repo_url = row[0].get("repository").get("url")
+                repo_name = row[0].get("repository").get("full_name")
+                access_token = get_github_access_token(row[1])
+                stack_id = row[2]
+
+                repo_path = clone_repo(repo_url, repo_name, access_token)
+                clone_user_repo(repo_path, stack_id)
+
+            except Exception as e:
+                print(f"Error processing event: {e}")
+
+            finally:
+                # Cleanup the cloned repo
+                print("Cleaning up cloned repository")
+                cursor.execute(
+                    "DELETE FROM github_webhookevents WHERE user_id = %s", (row[1],)
+                )
+                connection.commit()
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    database.connect_to_db()
+    app.run(
+        debug=True,
+        host=os.environ.get("FLASK_RUN_HOST", "0.0.0.0"),
+        port=os.environ.get("FLASK_RUN_PORT", "7654"),
+    )
