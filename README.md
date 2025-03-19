@@ -19,4 +19,3 @@ if you do not have docker installed it should install it for you.
 
 
 Now you should be setup with your stack. For docs on how to use your stack please visit https://deploy-box.bitdocs.ai/share/d/rOj30y8LuqP5UxIc
-
