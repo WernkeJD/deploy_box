@@ -117,7 +117,7 @@ def list_repos(request):
         repo_list += f"""
             <li>
                 <a href="{repo['html_url']}">{repo['name']}</a>
-                <form action="http://127.0.0.1:8000/github/webhooks/create" method="post" style="display:inline;">
+                <form action="{settings.HOST}/github/webhooks/create" method="post" style="display:inline;">
                     <input type="hidden" name="stack-id" value="{ 3 }">
                     <input type="hidden" name="repo-url" value="{repo['clone_url']}">
                     <input type="hidden" name="repo-name" value="{repo['name']}">
@@ -169,7 +169,7 @@ def create_github_webhook(request):
     # webhook_secret = secrets.token_hex(32)
 
     # Webhook URL pointing to your backend
-    webhook_url = f"https://deploy-box.onrender.com/github/webhooks/{user.id}"
+    webhook_url = f"{settings.HOST}/github/webhooks/{user.id}"
 
     headers = {
         "Authorization": f"token {github_token}",
