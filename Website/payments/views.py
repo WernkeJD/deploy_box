@@ -109,10 +109,6 @@ def create_checkout_session(request):
         try:
             checkout_session = stripe.checkout.Session.create(
                 customer=UserProfile.objects.get(user_id= request.user.id).stripe_customer_id,
-                metadata={
-                    "user_id": request.user.id,
-                    "stack_id": "2",
-                },
                 success_url=domain_url
                 + "/payments/success?session_id={CHECKOUT_SESSION_ID}",
                 cancel_url=domain_url + "/payments/cancelled",
@@ -120,13 +116,7 @@ def create_checkout_session(request):
                 mode="payment",
                 line_items=[
                     {
-                        "price_data": {
-                            "currency": "usd",
-                            "product_data": {
-                                "name": "Premium MERN Stack",
-                            },
-                            "unit_amount": 200,
-                        },
+                        "price": "price_1R0cuHC8awKXIVJaiTxt7TEb",
                         "quantity": 1,
                     }
                     
@@ -189,36 +179,54 @@ def stripe_webhook(request):
     stripe.api_key = settings.STRIPE_SECRET_KEY
     endpoint_secret = settings.STRIPE_ENDPOINT_SECRET
     payload = request.body
-    sig_header = request.META["HTTP_STRIPE_SIGNATURE"]
+    sig_header = request.headers.get("Stripe-Signature")
     event = None
 
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
     except ValueError as e:
         # Invalid payload
-        return HttpResponse(status=400)
+        print(f"Error parsing webhook payload: {e}")
+        return HttpResponse("Invalid payload", status=400)
     except stripe.error.SignatureVerificationError as e:
         # Invalid signature
-        return HttpResponse(status=400)
+        print(f"Error verifying signature: {e}")
+        return HttpResponse("Invalid signature", status=400)
 
     # Handle the checkout.session.completed event
     if event["type"] == "checkout.session.completed":
         print("Payment was successful.")
 
-        data = json.loads(payload)
+        session = event["data"]["object"]
 
-        metadata = data["data"]["object"]["metadata"]
-        user_id = metadata.get("user_id")
-        stack_id = metadata.get("stack_id")
+        # Get Stripe Customer ID
+        stripe_customer_id = session.get("customer")
 
-        # Check if the stack already exists
-        if Stacks.objects.filter(user=user_id, stack=stack_id).exists():
+        # Fetch the user based on the Stripe Customer ID
+        try:
+            user = User.objects.get(stripe_customer_id=stripe_customer_id)
+        except User.DoesNotExist:
+            print(f"User with Stripe ID {stripe_customer_id} not found.")
+            return HttpResponse("Customer does not exist", status=400)
+
+        # Retrieve line items to get the Price ID
+        line_items = stripe.checkout.Session.list_line_items(session["id"])
+        if not line_items["data"]:
+            print("No line items found in session.")
+            return HttpResponse("No line items", status=400)
+
+        price_id = line_items["data"][0]["price"]["id"]  # Get first price ID
+
+        # Fetch the corresponding stack based on Price ID
+        try:
+            available_stack = AvailableStacks.objects.get(price_id=price_id)
+        except AvailableStacks.DoesNotExist:
+            print(f"Stack with Price ID {price_id} not found.")
             return HttpResponse(status=400)
 
-        user = User.objects.get(id=user_id)
-        avaiable_stack = AvailableStacks.objects.get(id=stack_id)
+        # Create a stack entry for the user
+        Stacks.objects.create(user=user, stack=available_stack)
 
-        Stacks.objects.create(user=user, stack=avaiable_stack)
         return HttpResponse(status=200)
 
     return HttpResponse(status=200)
