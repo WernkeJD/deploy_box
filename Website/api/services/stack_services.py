@@ -55,7 +55,7 @@ def add_stack(request: Request) -> Response:
     return Response({"message": "Stack added successfully"}, status.HTTP_201_CREATED)
 
 
-def deploy_stack(request: Request, stack_id: str) -> Response:
+def deploy_stack(_, stack_id: str) -> Response:
     stack = get_object_or_404(Stacks, id=stack_id)
 
     # Create deployment database
