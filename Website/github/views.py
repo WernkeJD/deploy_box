@@ -307,81 +307,83 @@ def sample_submit_and_approve_build(stack_id, github_repo, github_token):
         print(github_url)
         print(github_repo_name)
 
-        # Define the Cloud Build steps similar to the YAML configuration
-        build_steps = [
-            cloudbuild_v1.BuildStep(
-                name="gcr.io/cloud-builders/git", args=["clone", github_url]
-            ),
-            cloudbuild_v1.BuildStep(
-                name="gcr.io/cloud-builders/docker",
-                entrypoint="bash",
-                args=[
-                    "-c",
-                    f"docker build -t us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/frontend-{stack_id} ./{github_repo_name}/frontend",
-                ],
-            ),
-            cloudbuild_v1.BuildStep(
-                name="gcr.io/cloud-builders/docker",
-                args=[
-                    "push",
-                    f"us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/frontend-{stack_id}",
-                ],
-            ),
-            cloudbuild_v1.BuildStep(
-                name="gcr.io/google.com/cloudsdktool/cloud-sdk",
-                entrypoint="bash",
-                args=[
-                    "-c",
-                    f"""
-                    gcloud run deploy frontend-{stack_id} \
-                        --image=us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/frontend-{stack_id} \
-                        --region=us-central1 \
-                        --platform=managed \
-                        --allow-unauthenticated
-                """,
-                ],
-            ),
-            cloudbuild_v1.BuildStep(
-                name="gcr.io/google.com/cloudsdktool/cloud-sdk",
-                entrypoint="bash",
-                args=[
-                    "-c",
-                    f"""
-                    service_full_name="projects/deploy-box/locations/us-central1/services/frontend-{stack_id}"
-                    gcloud run services add-iam-policy-binding frontend-{stack_id} \
-                        --region=us-central1 \
-                        --member="allUsers" \
-                        --role="roles/run.invoker"
-                """,
-                ],
-            ),
-        ]
+        for layer in ["backend", "frontend"]:
 
-        # Define the build configuration (timeout, source location, and steps)
-        build = cloudbuild_v1.Build(steps=build_steps, timeout="600s")
+            # Define the Cloud Build steps similar to the YAML configuration
+            build_steps = [
+                cloudbuild_v1.BuildStep(
+                    name="gcr.io/cloud-builders/git", args=["clone", github_url]
+                ),
+                cloudbuild_v1.BuildStep(
+                    name="gcr.io/cloud-builders/docker",
+                    entrypoint="bash",
+                    args=[
+                        "-c",
+                        f"docker build -t us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/{layer}-{stack_id} ./{github_repo_name}/{layer}",
+                    ],
+                ),
+                cloudbuild_v1.BuildStep(
+                    name="gcr.io/cloud-builders/docker",
+                    args=[
+                        "push",
+                        f"us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/{layer}-{stack_id}",
+                    ],
+                ),
+                cloudbuild_v1.BuildStep(
+                    name="gcr.io/google.com/cloudsdktool/cloud-sdk",
+                    entrypoint="bash",
+                    args=[
+                        "-c",
+                        f"""
+                        gcloud run deploy {layer}-{stack_id} \
+                            --image=us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/{layer}-{stack_id} \
+                            --region=us-central1 \
+                            --platform=managed \
+                            --allow-unauthenticated
+                    """,
+                    ],
+                ),
+                cloudbuild_v1.BuildStep(
+                    name="gcr.io/google.com/cloudsdktool/cloud-sdk",
+                    entrypoint="bash",
+                    args=[
+                        "-c",
+                        f"""
+                        service_full_name="projects/deploy-box/locations/us-central1/services/{layer}-{stack_id}"
+                        gcloud run services add-iam-policy-binding {layer}-{stack_id} \
+                            --region=us-central1 \
+                            --member="allUsers" \
+                            --role="roles/run.invoker"
+                    """,
+                    ],
+                ),
+            ]
 
-        # Create the build request
-        build_request = cloudbuild_v1.CreateBuildRequest(
-            project_id=project_id, build=build
-        )
+            # Define the build configuration (timeout, source location, and steps)
+            build = cloudbuild_v1.Build(steps=build_steps, timeout="600s")
 
-        # Submit the build
-        print("Submitting build...")
-        operation = client.create_build(build_request)
-
-        # Wait for the build to finish and catch any errors
-        print("Waiting for build to complete...")
-        response = operation.result()
-        print(f"Build submitted: {response.status}")
-        print(f"Build ID: {response.id}")
-        print(f"Build name: {response.name}")
-
-        if response.status != cloudbuild_v1.Build.Status.SUCCESS:
-            print("Build failed. Checking logs...")
-            # Optionally, fetch more logs or information on why the build failed
-            print(
-                f"Build log URL: https://console.cloud.google.com/cloud-build/builds/{response.id}?project={project_id}"
+            # Create the build request
+            build_request = cloudbuild_v1.CreateBuildRequest(
+                project_id=project_id, build=build
             )
+
+            # Submit the build
+            print("Submitting build...")
+            operation = client.create_build(build_request)
+
+            # Wait for the build to finish and catch any errors
+            print("Waiting for build to complete...")
+            response = operation.result()
+            print(f"Build submitted: {response.status}")
+            print(f"Build ID: {response.id}")
+            print(f"Build name: {response.name}")
+
+            if response.status != cloudbuild_v1.Build.Status.SUCCESS:
+                print("Build failed. Checking logs...")
+                # Optionally, fetch more logs or information on why the build failed
+                print(
+                    f"Build log URL: https://console.cloud.google.com/cloud-build/builds/{response.id}?project={project_id}"
+                )
 
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -431,6 +433,8 @@ def github_webhook(request, webhook_id):
         target=sample_submit_and_approve_build,
         args=(webhook.stack.id, webhook.repository, github_token),
     ).start()
+
+
 
     return JsonResponse({"status": "success", "event_type": event_type}, status=200)
 
