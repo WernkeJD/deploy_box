@@ -421,9 +421,9 @@ def github_webhook(request, webhook_id):
     user = webhook.user if webhook else None
 
     # Store event in the database
-    WebhookEvents.objects.create(
-        user=user, stack=webhook.stack, event_type=event_type, payload=payload
-    )
+    # webhook_event = WebhookEvents.objects.create(
+    #     user=user, stack=webhook.stack, event_type=event_type, payload=payload
+    # )
 
     github_token = Tokens.objects.get(user=user).get_token()
 
