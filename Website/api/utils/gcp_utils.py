@@ -8,6 +8,7 @@ from google.cloud import iam_admin_v1
 import os
 import time
 from django.conf import settings
+from google.cloud import monitoring_v3
 
 # Set paths and credentials
 current_working_dir = os.getcwd()
@@ -42,6 +43,9 @@ def get_storage_client():
 def get_services_client():
     return run_v2.ServicesClient(credentials=get_credentials())
 
+def get_monitoring_client():
+    return monitoring_v3.MetricServiceClient(credentials=get_credentials())
+
 
 # Helper to determine when the service account is ready
 def service_account_ready(service_account_name):
@@ -66,8 +70,6 @@ def create_service_account_key(project_id, service_account_name, key_file_path):
     service_account_resource = (
         f"projects/{project_id}/serviceAccounts/{service_account_email}"
     )
-
-    client.get_service_account(name=service_account_resource)
 
     response = client.create_service_account_key(
         name=service_account_resource,
@@ -240,17 +242,16 @@ def deploy_service(service_name, image, env_vars):
         policy.bindings.append(
             policy_pb2.Binding(role="roles/run.invoker", members=["allUsers"])
         )
-        run_client.set_iam_policy(
-            request={"resource": service_full_name, "policy": policy}
-        )
+        run_client.set_iam_policy(request={"resource": service_full_name, "policy": policy})
 
         # Get service URL
         service_info = run_client.get_service(name=service_full_name)
         return service_info.uri
-
+    
     except Exception as e:
         print(f"Error: {e}")
         raise e
+    
 
 
 # Function to refresh the service by updating the image
@@ -265,3 +266,53 @@ def refresh_service(service_name, image):
     operation = run_client.update_service(service=service)
     operation.result()  # Wait for deployment
     print(f"Refreshed {service_name}")
+
+def delete_service(service_name):
+    run_client = get_services_client()
+    parent = f"projects/{PROJECT_ID}/locations/{REGION}"
+
+    service_full_name = f"{parent}/services/{service_name}"
+    operation = run_client.delete_service(name=service_full_name)
+    operation.result()  # Wait for deletion
+    print(f"Deleted {service_name}")
+
+def get_service_utilization(service_name):
+    client = get_monitoring_client()
+    project_name = f"projects/{PROJECT_ID}"
+
+    # Define the metric types for Cloud Run
+    metrics = {
+        "request_count": "run.googleapis.com/request_count",
+        "cpu_usage": "run.googleapis.com/container/cpu/utilizations",
+        "memory_usage": "run.googleapis.com/container/memory/utilizations",
+        # "egress_traffic": "run.googleapis.com/network/egress_bytes_count",
+        # "instance_time": "run.googleapis.com/container/instance_time",
+    }
+
+    for metric_name, metric_type in metrics.items():
+        print(f"\nFetching data for: {metric_name}")
+
+        # Create a filter for the Cloud Run service
+        filter_str = (
+            f'metric.type="{metric_type}" '
+            f'AND resource.labels.service_name="{service_name}" '
+            f'AND resource.labels.location="{REGION}"'
+        )
+
+        request = monitoring_v3.ListTimeSeriesRequest(
+            name=project_name,
+            filter=filter_str,
+            interval=monitoring_v3.TimeInterval(
+                end_time={"seconds": int(time.time())},
+                start_time={"seconds": int(time.time()) - 3600},  # Last 1 hour
+            ),
+            view=monitoring_v3.ListTimeSeriesRequest.TimeSeriesView.FULL,
+        )
+
+        response = client.list_time_series(request)
+        
+        for time_series in response:
+            print(f"Metric: {time_series}")
+            for point in time_series.points:
+                print(f"Time: {point.interval.end_time}, Value: {point.value}")
+

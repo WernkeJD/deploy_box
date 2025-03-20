@@ -295,7 +295,7 @@ from google.oauth2 import service_account
 def sample_submit_and_approve_build(stack_id, github_repo, github_token):
     try:
         # Create a client with credentials
-        credentials = service_account.Credentials.from_service_account_file("key.json")
+        credentials = service_account.Credentials.from_service_account_file(settings.GCP_KEY_PATH)
         client = cloudbuild_v1.CloudBuildClient(credentials=credentials)
 
         # Replace with your project ID
