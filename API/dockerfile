@@ -60,9 +60,10 @@ EXPOSE 7654
 ENV FLASK_APP=app.py
 ENV FLASK_RUN_HOST=0.0.0.0
 ENV FLASK_RUN_PORT=7654
-ENV FLASK_ENV=production
+# ENV FLASK_ENV=production
 
 # Start Docker daemon and Flask app
 CMD ["sh", "-c", "dockerd --host=unix:///var/run/docker.sock & python app.py"]
 
-# docker run --privileged -v C:/Users/kaleb/.ssh:/root/.ssh -p 2375:2375 -p 7654:7654 us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/deploy-box-api
+# docker run --privileged -v /home/kalebwbishop/.ssh:/root/.ssh -v /home/kalebwbishop/key.json:/app/key.json -p 2375:2375 -p 7654:7654 us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/deploy-box-api
+# docker run --privileged -v C:/Users/kaleb/.ssh:/root/.ssh -v C:/Users/kaleb/repos/deploy_box/API/key.json:/app/key.json -p 2375:2375 -p 7654:7654 us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/deploy-box-api

@@ -9,6 +9,8 @@ import time
 import database
 from cryptography.fernet import Fernet
 import logging
+import shutil
+import glob
 
 logging.basicConfig(
     filename="deploy_box.log",  # Change or remove this to log to the console
@@ -26,6 +28,12 @@ parent = f"{name}/locations/{REGION}"
 
 app = Flask(__name__)
 connection = database.get_connection()
+
+
+@app.route("/", methods=["GET"])
+def home():
+    return "Deploy Box API is running.", 200
+
 
 # Check if the GCP_KEY_PATH exists
 if not os.path.exists(GCP_KEY_PATH):
@@ -102,6 +110,11 @@ def authenticate_docker():
         logging.error(f"Docker authentication failed: {e}")
 
 
+def prune_docker():
+    subprocess.run(["docker", "system", "prune", "-af"], check=True)
+    subprocess.run(["docker", "volume", "prune", "-f"], check=True)
+
+
 def build_and_push_image(image_name, repo_path, tag: str = "latest"):
     """Builds and pushes a Docker image to Google Container Registry."""
     dockerfile_path = None
@@ -164,9 +177,18 @@ def refresh_service(service_name, image, tag="latest"):
         logging.error(f"Failed to refresh service {service_name}: {e}")
 
 
+def clean_old_repos():
+    """Removes old cloned repositories to free up space."""
+    repo_dirs = glob.glob("deployed_repos/*")
+    for repo_dir in repo_dirs:
+        try:
+            shutil.rmtree(repo_dir)
+        except Exception as e:
+            logging.error(f"Error deleting repo {repo_dir}: {e}")
+
+
 def clone_repo(repo_url, repo_name, access_token):
     """Clones the given GitHub repository to the server."""
-
     repo_path = os.path.abspath(
         os.path.join(
             "deployed_repos",
@@ -250,44 +272,51 @@ def get_github_access_token(user_id: str):
 def get_github_webhook_events():
     logging.info("Processing GitHub webhook events.")
 
-    while True:
-        cursor = connection.cursor()
-        cursor.execute(
-            "SELECT id, payload, user_id, stack_id FROM github_webhookevents"
-        )
-        rows = cursor.fetchall()
+    # while True:
+    cursor = connection.cursor()
+    cursor.execute("SELECT id, payload, user_id, stack_id FROM github_webhookevents")
+    rows = cursor.fetchall()
 
-        if not rows:
-            logging.info("No events found to process.")
-            return "No more events to process", 200
+    if not rows:
+        logging.info("No events found to process.")
+        return "No more events to process", 200
 
-        for row in rows:
-            try:
-                repo_url = row[1].get("repository").get("url")
-                repo_name = row[1].get("repository").get("full_name")
-                access_token = get_github_access_token(row[2])
-                stack_id = row[3]
+    for row in rows:
+        clean_old_repos()
+        prune_docker()
 
-                repo_path = clone_repo(repo_url, repo_name, access_token)
-                clone_user_repo(repo_path, stack_id)
+        deployed_repos_path = os.path.join(current_working_dir, "deployed_repos")
+        for root, dirs, files in os.walk(deployed_repos_path, topdown=False):
+            for name in files:
+                os.remove(os.path.join(root, name))
+            for name in dirs:
+                os.rmdir(os.path.join(root, name))
+        logging.info("Cleaned up /app/deployed_repos folder.")
+        try:
+            repo_url = row[1].get("repository").get("url")
+            repo_name = row[1].get("repository").get("full_name")
+            access_token = get_github_access_token(row[2])
+            stack_id = row[3]
 
-            except Exception as e:
-                logging.error(f"Error processing event: {e}")
+            repo_path = clone_repo(repo_url, repo_name, access_token)
+            clone_user_repo(repo_path, stack_id)
 
-            finally:
-                logging.debug("Cleaning up cloned repository.")
-                cursor.execute(
-                    "DELETE FROM github_webhookevents WHERE id = %s", (row[0],)
-                )
-                connection.commit()
+        except Exception as e:
+            logging.error(f"Error processing event: {e}")
+
+        finally:
+            logging.debug("Cleaning up cloned repository.")
+            # cursor.execute("DELETE FROM github_webhookevents WHERE id = %s", (row[0],))
+            # connection.commit()
 
 
 if __name__ == "__main__":
     # authenticate_docker()
     logging.info("Starting the Deploy Box application.")
+    print(get_github_access_token("8"))
     # database.connect_to_db()
-    app.run(
-        debug=True,
-        host=os.environ.get("FLASK_RUN_HOST", "0.0.0.0"),
-        port=os.environ.get("FLASK_RUN_PORT", "7654"),
-    )
+    # app.run(
+    #     debug=True,
+    #     host=os.environ.get("FLASK_RUN_HOST", "0.0.0.0"),
+    #     port=os.environ.get("FLASK_RUN_PORT", "7654"),
+    # )
