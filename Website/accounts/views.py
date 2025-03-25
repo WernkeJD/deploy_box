@@ -8,7 +8,7 @@ import os
 import base64
 import hashlib
 from django.shortcuts import redirect
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
@@ -152,3 +152,8 @@ def oauth2_callback(request):
     except Exception as e:
         logger.error(f"Error occurred during token exchange: {str(e)}")
         return JsonResponse({"error": "Error during token exchange"}, status=500)
+    
+    
+def logout_view(request):
+    logout(request)  # This logs out the user
+    return redirect('/')
