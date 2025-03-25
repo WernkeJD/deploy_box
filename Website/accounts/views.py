@@ -73,7 +73,7 @@ def login_view(request):
 
             # Store the code verifier in the session
             request.session["code_verifier"] = code_verifier
-            request.session["next"] = request.GET.get("next")
+            request.session["next"] = request.POST.get("next")
 
             # Redirect to the OAuth2 authorization page after login
             client_id = settings.OAUTH2_FRONTEND_SETTINGS["client_id"]
