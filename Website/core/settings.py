@@ -83,6 +83,7 @@ NPM_BIN_PATH = "C:/Program Files/nodejs/npm.cmd"
 
 CSRF_TRUSTED_ORIGINS = [
     "https://deploy-box.onrender.com",
+    "https://website-8-1038595011070.us-central1.run.app",
 ]
 
 
