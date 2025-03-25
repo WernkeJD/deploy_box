@@ -118,7 +118,7 @@ def list_repos(request):
             <li>
                 <a href="{repo['html_url']}">{repo['name']}</a>
                 <form action="{settings.HOST}/github/webhooks/create" method="post" style="display:inline;">
-                    <input type="hidden" name="stack-id" value="{ 5 }">
+                    <input type="hidden" name="stack-id" value="{ 8 }">
                     <input type="hidden" name="repo-url" value="{repo['clone_url']}">
                     <input type="hidden" name="repo-name" value="{repo['name']}">
                     <button type="submit">Deploy</button>
