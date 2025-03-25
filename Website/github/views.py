@@ -204,6 +204,13 @@ def create_github_webhook(request):
     )
 
     for hook in response.json():
+        print("hook", hook)
+
+        if "config" not in hook:
+            continue
+        if "url" not in hook["config"]:
+            continue
+
         if hook["config"]["url"] == webhook_url:
             webhook = Webhooks.objects.create(
                 user=user,
@@ -307,7 +314,6 @@ def sample_submit_and_approve_build(stack_id, github_repo, github_token, layer:s
         print(github_url)
         print(github_repo_name)
 
-        layer = layer.lower()
         image_name = f"us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/{layer}-{stack_id}".lower()
 
         # Define the Cloud Build steps similar to the YAML configuration
@@ -336,7 +342,7 @@ def sample_submit_and_approve_build(stack_id, github_repo, github_token, layer:s
                 args=[
                     "-c",
                     f"""
-                    gcloud run deploy {layer}-{stack_id} \
+                    gcloud run deploy {layer.lower()}-{stack_id} \
                         --image={image_name} \
                         --region=us-central1 \
                         --platform=managed \
@@ -350,8 +356,8 @@ def sample_submit_and_approve_build(stack_id, github_repo, github_token, layer:s
                 args=[
                     "-c",
                     f"""
-                    service_full_name="projects/deploy-box/locations/us-central1/services/{layer}-{stack_id}"
-                    gcloud run services add-iam-policy-binding {layer}-{stack_id} \
+                    service_full_name="projects/deploy-box/locations/us-central1/services/{layer.lower()}-{stack_id}"
+                    gcloud run services add-iam-policy-binding {layer.lower()}-{stack_id} \
                         --region=us-central1 \
                         --member="allUsers" \
                         --role="roles/run.invoker"
