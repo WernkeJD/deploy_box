@@ -428,15 +428,27 @@ def github_webhook(request, webhook_id):
 
     github_token = Tokens.objects.get(user=user).get_token()
 
-    threading.Thread(
-        target=sample_submit_and_approve_build,
-        args=(webhook.stack.id, webhook.repository, github_token, "backend"),
-    ).start()
+    # TODO: Handle different repository types
+    if repository == "WernkeJD/deploy_box":
+        # Handle the specific repository
+        print("Handling WernkeJD/deploy_box repository")
 
-    threading.Thread(
-        target=sample_submit_and_approve_build,
-        args=(webhook.stack.id, webhook.repository, github_token, "frontend"),
-    ).start()
+        threading.Thread(
+            target=sample_submit_and_approve_build,
+            args=(webhook.stack.id, webhook.repository, github_token, "Website"),
+        ).start()
+
+    else:
+
+        threading.Thread(
+            target=sample_submit_and_approve_build,
+            args=(webhook.stack.id, webhook.repository, github_token, "backend"),
+        ).start()
+
+        threading.Thread(
+            target=sample_submit_and_approve_build,
+            args=(webhook.stack.id, webhook.repository, github_token, "frontend"),
+        ).start()
 
 
 
