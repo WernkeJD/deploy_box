@@ -307,6 +307,8 @@ def sample_submit_and_approve_build(stack_id, github_repo, github_token, layer:s
         print(github_url)
         print(github_repo_name)
 
+        layer = layer.lower()
+        image_name = f"us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/{layer}-{stack_id}".lower()
 
         # Define the Cloud Build steps similar to the YAML configuration
         build_steps = [
@@ -318,14 +320,14 @@ def sample_submit_and_approve_build(stack_id, github_repo, github_token, layer:s
                 entrypoint="bash",
                 args=[
                     "-c",
-                    f"docker build -t us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/{layer}-{stack_id} ./{github_repo_name}/{layer}",
+                    f"docker build -t {image_name} ./{github_repo_name}/{layer}",
                 ],
             ),
             cloudbuild_v1.BuildStep(
                 name="gcr.io/cloud-builders/docker",
                 args=[
                     "push",
-                    f"us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/{layer}-{stack_id}",
+                    image_name,
                 ],
             ),
             cloudbuild_v1.BuildStep(
@@ -335,7 +337,7 @@ def sample_submit_and_approve_build(stack_id, github_repo, github_token, layer:s
                     "-c",
                     f"""
                     gcloud run deploy {layer}-{stack_id} \
-                        --image=us-central1-docker.pkg.dev/deploy-box/deploy-box-repository/{layer}-{stack_id} \
+                        --image={image_name} \
                         --region=us-central1 \
                         --platform=managed \
                         --allow-unauthenticated
