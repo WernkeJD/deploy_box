@@ -10,5 +10,5 @@ urlpatterns = [
     path("api/", include(("api.urls", "api"), "api")),
     path("payments/", include(("payments.urls", "payments"), "payments")),
     path("github/", include(("github.urls", "github"), "github")),
-    path("__reload__/", include("django_browser_reload.urls")),
+    # path("__reload__/", include("django_browser_reload.urls")),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
