@@ -446,6 +446,20 @@ def github_webhook(request, webhook_id):
             args=(webhook.stack.id, webhook.repository, github_token, "Website"),
         ).start()
 
+    elif repository == "HamzaKhairy/green_toolkit":
+        # Handle the specific repository
+        print("Handling HamzaKhairy/green_toolkit repository")
+
+        threading.Thread(
+            target=sample_submit_and_approve_build,
+            args=(webhook.stack.id, webhook.repository, github_token, "deploybox/MERN/backend"),
+        ).start()
+
+        threading.Thread(
+            target=sample_submit_and_approve_build,
+            args=(webhook.stack.id, webhook.repository, github_token, "deploybox/MERN/backend"),
+        ).start()
+
     else:
 
         threading.Thread(
