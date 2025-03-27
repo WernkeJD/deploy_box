@@ -457,7 +457,7 @@ def github_webhook(request, webhook_id):
 
         threading.Thread(
             target=sample_submit_and_approve_build,
-            args=(webhook.stack.id, webhook.repository, github_token, "deploybox/MERN/backend"),
+            args=(webhook.stack.id, webhook.repository, github_token, "deploybox/MERN/frontend"),
         ).start()
 
     else:
