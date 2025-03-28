@@ -25,7 +25,7 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
-          pip install -r requirements.txt
+          pip install -r Website/requirements.txt
 
       - name: Run migrations
         env:
@@ -36,5 +36,5 @@ jobs:
           DB_PORT: ${{ secrets.DB_PORT }}
         run: |
           source venv/bin/activate
-          python manage.py makemigrations
-          python manage.py migrate
+          python Website/manage.py makemigrations
+          python Website/manage.py migrate
