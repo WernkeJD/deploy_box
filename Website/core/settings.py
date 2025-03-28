@@ -15,7 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.environ.get("ENV", "dev") == "dev"
 
 ALLOWED_HOSTS = ["*"]
 
@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "github",
 ]
 
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "oauth2_provider.contrib.rest_framework.OAuth2Authentication",
@@ -67,10 +68,16 @@ OAUTH2_FRONTEND_SETTINGS = {
 }
 
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
-SESSION_COOKIE_SECURE = False  # Change to True in production
+SESSION_COOKIE_SECURE = os.environ.get("ENV", "dev") == "prod"
 SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_SAVE_EVERY_REQUEST = True
 
+SECURE_HSTS_SECONDS = 31536000 if os.environ.get("ENV", "dev") == "prod" else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True  # Apply HSTS to subdomains
+SECURE_HSTS_PRELOAD = True  # Allow the site to be included in the HSTS preload list
+SECURE_SSL_REDIRECT = True  # Redirect all HTTP traffic to HTTPS
+
+CSRF_COOKIE_SECURE = os.environ.get("ENV", "dev") == "prod"
 
 # essential for taillwind
 TAILWIND_APP_NAME = "theme"
