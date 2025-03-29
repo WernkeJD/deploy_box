@@ -1,10 +1,9 @@
 name: Django Migrations
 
 on:
-  pull_request:
+  push:
     branches:
-      - main  # Run on pull requests to the main branch
-
+      - main  # Run on pushes to the main branch
 jobs:
   migrations:
     runs-on: ubuntu-latest
