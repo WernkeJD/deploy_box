@@ -37,8 +37,8 @@ jobs:
 
       - name: Run Main
         env:
-          client_id: ${{ secrets.client_id }}
-          client_secret: ${{ secrets.client_id }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
         run: |
           source venv/bin/activate 
           python crontainer/monthly.py
