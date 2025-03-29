@@ -3,6 +3,7 @@ name: Daily CRON
 on:
   schedule:
     - cron: '0 0 * * *'  # Runs at midnight (00:00) UTC every dayh
+  workflow_dispatch:
 
 jobs:
   migrations:
