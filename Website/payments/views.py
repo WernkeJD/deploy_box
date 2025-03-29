@@ -2,9 +2,13 @@ from django.conf import settings
 from django.http.response import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
+from requests import Response
+from .serializers.payments_serializer import PaymentsSerializer
+from api.serializers.stacks_serializer import StackDatabasesSerializer
 from api.models import Stacks
 from django.contrib.auth.models import User
 from accounts.models import UserProfile
+from api.models import StackDatabases
 from api.models import AvailableStacks
 import json
 import time
@@ -12,6 +16,7 @@ import stripe
 from accounts.decorators.oauth_required import oauth_required
 from django.shortcuts import render
 from api.services.stack_services import deploy_stack
+from django.db.models import F
 
 stripe.api_key = settings.STRIPE.get("SECRET_KEY")
 stripe.publishable_key = settings.STRIPE.get("PUBLISHABLE_KEY")
@@ -287,3 +292,49 @@ def create_invoice(request):
             return JsonResponse(
                 {"error": "An error occurred while creating the invoice."}, status=400
             )
+
+@csrf_exempt
+def get_customer_id(request):
+    if request.method == "POST":
+        try:
+            # Parse the JSON data from the request body
+            data = json.loads(request.body)
+            user_id = data.get("user_id")  # Extract user_id from the JSON payload
+
+            # Check if user_id is provided
+            if not user_id:
+                return JsonResponse({"error": "user_id is required"}, status=400)
+
+            # Query the UserProfile by the provided user_id
+            try:
+                user = UserProfile.objects.get(user_id=user_id)
+                customer_id = user.stripe_customer_id  # Assuming customer_id is a field in UserProfile
+
+                return JsonResponse({"customer_id": customer_id}, status=200)
+            
+            except UserProfile.DoesNotExist:
+                return JsonResponse({"error": "User not found"}, status=404)
+
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+    else:
+        return JsonResponse({"error": "Only POST requests are allowed."}, status=405)
+    
+@csrf_exempt
+def update_invoice_billing(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        stack_id = data.get("stack_id")
+        cost = data.get("cost")
+        updated_count = StackDatabases.objects.filter(stack_id=stack_id).update(current_usage=0)
+        billing = StackDatabases.objects.filter(stack_id=stack_id).update(pending_billed=F("pending_billed")+cost)
+
+        # Check if any rows were updated
+        if updated_count > 0:
+            # Successfully updated
+            return JsonResponse({"message": "Invoice billing updated successfully."}, status=200)
+        else:
+            # Failed to update (either no such stack_id or no change made)
+            return JsonResponse({"error": "Stack ID not found or already updated."}, status=400)
+
+        
