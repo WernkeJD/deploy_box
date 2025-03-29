@@ -65,10 +65,17 @@ OAUTH2_PROVIDER = {
     "AUTHORIZATION_CODE_EXPIRATION": 600,
 }
 
-OAUTH2_FRONTEND_SETTINGS = {
-    "client_id": os.environ.get("OAUTH2_FRONTEND_CLIENT_ID"),
-    "client_secret": os.environ.get("OAUTH2_FRONTEND_CLIENT_SECRET"),
+OAUTH2_AUTHORIZATION_CODE = {
+    "client_id": os.environ.get("OAUTH2_AUTHORIZATION_CODE_CLIENT_ID"),
+    "client_secret": os.environ.get("OAUTH2_AUTHORIZATION_CODE_CLIENT_SECRET"),
     "redirect_uri": f"{HOST}/accounts/callback/",
+    "token_url": f"{HOST}/accounts/o/token/",
+}
+
+OAUTH2_CLIENT_CREDENTIALS = {
+    "client_id": os.environ.get("OAUTH2_CLIENT_CREDENTIALS_CLIENT_ID"),
+    "client_secret": os.environ.get("OAUTH2_CLIENT_CREDENTIALS_CLIENT_SECRET"),
+    "token_url": f"{HOST}/accounts/o/token/",
 }
 
 # Sessions & Security
