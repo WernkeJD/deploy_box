@@ -25,6 +25,6 @@ jobs:
           pip install -r crontainer/requirements.txt
 
       - name: Run Main
-        run:
+        run: |
           source venv/bin/activate 
           python crontainer/main.py
