@@ -215,7 +215,7 @@ def create_github_webhook(request):
                 repository=f"{github_username}/{repo_name}",
                 webhook_id=webhook_data.get("id"),
                 stack=stack,
-                webhook_secret=webhook_secret
+                secret=webhook_secret
             )
         else:
             # Handle unexpected response
