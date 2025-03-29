@@ -205,10 +205,26 @@ def create_github_webhook(request):
             timeout=5
         )
         webhook_response.raise_for_status()
+
+        # Store webhook details in the database
+        webhook_data = webhook_response.json()
+        if webhook_response.status_code == 201:
+            # Successfully created webhook, save to database
+            Webhooks.objects.create(
+                user=user,
+                repository=f"{github_username}/{repo_name}",
+                webhook_id=webhook_data.get("id"),
+                stack=stack,
+                webhook_secret=webhook_secret
+            )
+        else:
+            # Handle unexpected response
+            return JsonResponse({"error": "Failed to create webhook"}, status=400)
     except requests.RequestException as e:
         return JsonResponse({"error": f"Failed to create webhook: {str(e)}"}, status=400)
 
     return JsonResponse({"message": "Webhook created successfully", "webhook_secret": webhook_secret}, status=201)
+
 
 def delete_github_webhook(request):
     """Delete a GitHub webhook for a user's repository"""
