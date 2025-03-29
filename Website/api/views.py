@@ -35,3 +35,12 @@ def stack_operations(request: Request, stack_id=None):
     # PATCH: Update a stack
     elif request.method == "PATCH":
         return stack_services.update_stack(request, stack_id)
+    
+@api_view(["GET"])
+def get_all_stacks(request):
+    return stack_services.get_all_stacks(request)
+
+@api_view(["POST"])
+def update_database_usage(request):
+    return stack_services.update_database_storage_billing(request)
+
