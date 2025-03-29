@@ -2,6 +2,8 @@ from django.conf import settings
 from django.http.response import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
+from requests import Response
+from .serializers.payments_serializer import PaymentsSerializer
 from api.models import Stacks
 from django.contrib.auth.models import User
 from accounts.models import UserProfile
@@ -285,3 +287,30 @@ def create_invoice(request):
             return JsonResponse(
                 {"error": "An error occurred while creating the invoice."}, status=400
             )
+
+@csrf_exempt
+def get_customer_id(request):
+    if request.method == "POST":
+        try:
+            # Parse the JSON data from the request body
+            data = json.loads(request.body)
+            user_id = data.get("user_id")  # Extract user_id from the JSON payload
+
+            # Check if user_id is provided
+            if not user_id:
+                return JsonResponse({"error": "user_id is required"}, status=400)
+
+            # Query the UserProfile by the provided user_id
+            try:
+                user = UserProfile.objects.get(user_id=user_id)
+                customer_id = user.stripe_customer_id  # Assuming customer_id is a field in UserProfile
+
+                return JsonResponse({"customer_id": customer_id}, status=200)
+            
+            except UserProfile.DoesNotExist:
+                return JsonResponse({"error": "User not found"}, status=404)
+
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+    else:
+        return JsonResponse({"error": "Only POST requests are allowed."}, status=405)

@@ -13,7 +13,7 @@ def send_data(data, token):
 
 def check_db_size():
 
-    token = "dOSRVMH8oBFlwsq7oRjVTws3RAh5n8"
+    token = "HQE9qt5NL8PigIYjvXyoHH5Zcx8AdY"
     headers ={
         "Authorization": f"Bearer {token}"
     }    

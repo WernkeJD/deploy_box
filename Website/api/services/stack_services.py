@@ -206,7 +206,36 @@ def update_database_storage_billing(request: Request):
     for stack_id, usage in data.items():
         StackDatabases.objects.filter(stack_id=stack_id).update(current_usage=F('current_usage')+usage)
 
-
-
     return Response({"data": data}, status=status.HTTP_200_OK)
+
+def get_database_current_use_from_db(request: Request):
+    stacks = StackDatabases.objects.all()
+    stacks = StackDatabasesSerializer(stacks, many=True).data
+    print(stacks)
+
+    stacks_dict = {}
+    for stack in stacks:
+        usage = stack.get("current_usage")
+        temp = stack.get("stack")
+        user_temp = stack.get("stack").get("user")
+
+        if temp == None:
+            stack_id = "no stack"
+        else:
+            stack_id = temp.get("id")
+
+        if user_temp == None:
+            user_id = "no user"
+        else:
+            user_id = user_temp.get("id")
+
+        stacks_dict[stack_id] = (user_id, usage)
+
+    print("stack_dict: ", stacks_dict)
+
+    if stacks is not None:
+        return Response({"stacks": stacks_dict}, status.HTTP_200_OK)
+    else:
+        return Response("error in get all stacks", status.HTTP_400_BAD_REQUEST)
+
 
