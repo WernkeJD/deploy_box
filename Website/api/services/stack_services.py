@@ -13,6 +13,8 @@ from django.conf import settings
 import api.utils.gcp_utils as gcp_utils
 import api.utils.mongodb_utils as mongodb_utils
 from api.models import StackDatabases, StackBackends, Stacks, StackFrontends
+from django.db.models import F
+
 
 logger = logging.getLogger(__name__)
 
@@ -202,7 +204,7 @@ def update_database_storage_billing(request: Request):
     data = request.data
 
     for stack_id, usage in data.items():
-        StackDatabases.objects.filter(stack_id=stack_id).update(current_usage=usage)
+        StackDatabases.objects.filter(stack_id=stack_id).update(current_usage=F('current_usage')+usage)
 
 
 
