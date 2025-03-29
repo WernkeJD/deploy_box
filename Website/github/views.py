@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.conf import settings
 from django.urls import reverse
 from django.contrib.sessions.models import Session
+from django.template.loader import render_to_string
 import hmac
 import hashlib
 import json
@@ -107,27 +108,33 @@ def list_repos(request):
     )
 
     if repo_response.status_code != 200:
-        return HttpResponse("Failed to fetch repositories", status=400)
+        return JsonResponse({"error": "Failed to fetch repositories"}, status=400)
 
     repos = repo_response.json()
 
-    # Display repositories with deploy buttons
-    repo_list = "<h2>Your GitHub Repositories:</h2><ul>"
-    for repo in repos:
-        repo_list += f"""
-            <li>
-                <a href="{repo['html_url']}">{repo['name']}</a>
-                <form action="{settings.HOST}/github/webhooks/create" method="post" style="display:inline;">
-                    <input type="hidden" name="stack-id" value="{ 8 }">
-                    <input type="hidden" name="repo-url" value="{repo['clone_url']}">
-                    <input type="hidden" name="repo-name" value="{repo['name']}">
-                    <button type="submit">Deploy</button>
-                </form>
-            </li>
-        """
-    repo_list += "</ul>"
+    # Fetch user stacks
+    stacks = Stacks.objects.filter(user=user)
+    if not stacks.exists():
+        return JsonResponse({"error": "No stacks available"}, status=404)
 
-    return HttpResponse(repo_list)
+    # Safely render repositories list with deploy button
+    repo_list_html = "<h2>Your GitHub Repositories:</h2><ul>"
+
+    for repo in repos:
+        # Rendering each repo item with deploy button
+        repo_list_html += render_to_string(
+            'repo_list_item.html', 
+            {
+                'repo_name': repo['name'],
+                'repo_url': repo['html_url'],
+                'repo_clone_url': repo['clone_url'],
+                'stacks': stacks
+            }
+        )
+
+    repo_list_html += "</ul>"
+
+    return HttpResponse(repo_list_html)
 
 
 import requests
