@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework import status
 from api.services import stack_services
+from accounts.decorators.oauth_required import oauth_required
 
 DEPLOY_BOX_API_URL = "http://34.68.6.54:5000/api"
 # DEPLOY_BOX_API_URL = "http://localhost:5000/api"
@@ -37,6 +38,7 @@ def stack_operations(request: Request, stack_id=None):
         return stack_services.update_stack(request, stack_id)
     
 @api_view(["GET"])
+@oauth_required
 def get_all_stacks(request):
     return stack_services.get_all_stacks(request)
 
