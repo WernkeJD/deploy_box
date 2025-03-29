@@ -24,6 +24,11 @@ jobs:
           source venv/bin/activate
           pip install -r crontainer/requirements.txt
 
+      - name: Add ENVs
+        env:
+          client_id: ${{ secrets.client_id }}
+          client_secret: ${{ secrets.client_id }}
+
       - name: Run Main
         run: |
           source venv/bin/activate 
