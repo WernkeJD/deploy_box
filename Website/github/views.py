@@ -17,8 +17,8 @@ from api.models import Stacks
 
 GITHUB_SECRET = "your_webhook_secret"
 # GitHub OAuth credentials
-CLIENT_ID = settings.GITHUB_CLIENT_ID
-CLIENT_SECRET = settings.GITHUB_CLIENT_SECRET
+CLIENT_ID = settings.GITHUB.get("CLIENT_ID")
+CLIENT_SECRET = settings.GITHUB.get("CLIENT_SECRET")
 GITHUB_AUTH_URL = "https://github.com/login/oauth/authorize"
 GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
 GITHUB_USER_URL = "https://api.github.com/user"
@@ -302,7 +302,7 @@ from google.oauth2 import service_account
 def sample_submit_and_approve_build(stack_id, github_repo, github_token, layer:str):
     try:
         # Create a client with credentials
-        credentials = service_account.Credentials.from_service_account_file(settings.GCP_KEY_PATH)
+        credentials = service_account.Credentials.from_service_account_file(settings.GCP.get("KEY_PATH"))
         client = cloudbuild_v1.CloudBuildClient(credentials=credentials)
 
         # Replace with your project ID
