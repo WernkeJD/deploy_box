@@ -43,17 +43,14 @@ def update_invoice_billing(stack_id, token):
 
 
 
-
-
-
 def charge_customer():
 
-    token = "HQE9qt5NL8PigIYjvXyoHH5Zcx8AdY"
+    token = "eIyfndEvSxqG21GGMWVHblgepbl2sg"
     headers ={
         "Authorization": f"Bearer {token}"
     }    
     data = requests.get("http://localhost:8000/api/stacks/get_stack_usage_from_db", headers=headers)
-    # print("data: ", data.json())
+    print("data: ", data.json())
 
     for stack_id, values in data.json().get('stacks').items():
         user_id, usage = values
