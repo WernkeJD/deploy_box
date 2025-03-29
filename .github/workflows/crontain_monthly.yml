@@ -36,6 +36,9 @@ jobs:
           pip install -r crontainer/requirements.txt
 
       - name: Run Main
+        env:
+          client_id: ${{ secrets.client_id }}
+          client_secret: ${{ secrets.client_id }}
         run: |
           source venv/bin/activate 
           python crontainer/monthly.py
