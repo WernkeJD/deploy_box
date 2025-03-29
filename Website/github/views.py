@@ -322,8 +322,8 @@ def sample_submit_and_approve_build(stack_id, github_repo, github_token, layer:s
                         --image={image_name} \
                         --region=us-central1 \
                         --platform=managed \
-                        --allow-unauthenticated
-                        --port={port}
+                        --allow-unauthenticated \
+                        --set-env-vars=PORT={port}
                 """,
                 ],
             ),
