@@ -12,7 +12,9 @@ def oauth_required(view_func):
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         # Check if the access token is available and valid
-        access_token = get_access_token_from_session(request)
+        access_token = request.headers["Authorization"]
+        
+        # access_token = get_access_token_from_session(request)
 
         print(f"Access Token: {access_token}")
 
