@@ -129,7 +129,7 @@ def download_stack(request: Request, stack_id: str = None) -> Response:
     stack = get_object_or_404(Stacks, id=stack_id, user=request.user)
 
     # Load service account credentials
-    credentials_path = settings.GCP_KEY_PATH
+    credentials_path = settings.GCP.KEY_PATH
 
     try:
         credentials = service_account.Credentials.from_service_account_file(
