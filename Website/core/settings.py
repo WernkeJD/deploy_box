@@ -61,8 +61,14 @@ if DEBUG:
 # }
 
 OAUTH2_PROVIDER = {
-    "ACCESS_TOKEN_EXPIRE_SECONDS": 36000,
-    "AUTHORIZATION_CODE_EXPIRATION": 600,
+    'ACCESS_TOKEN_EXPIRE_SECONDS': 3600,  # 1 hour
+    'REFRESH_TOKEN_EXPIRE_SECONDS': 86400,  # 1 day
+    "AUTHORIZATION_CODE_EXPIRATION": 600,  # 10 minutes
+    'ROTATE_REFRESH_TOKENS': True,
+    'SCOPES': {
+        'read': 'Read scope',
+        'write': 'Write scope',
+    },
 }
 
 OAUTH2_AUTHORIZATION_CODE = {
