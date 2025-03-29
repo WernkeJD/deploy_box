@@ -1,6 +1,5 @@
 import requests
 import json
-import time
 from pymongo import MongoClient
 
 def send_data(data, token):
@@ -8,7 +7,7 @@ def send_data(data, token):
         "Authorization": f"Bearer {token}",
         'Content-Type': 'application/json'
     }  
-    url = "http://localhost:8000/api/stacks/update_database_usage"
+    url = "https://deploy-box.kalebwbishop.com/api/stacks/update_database_usage"
     requests.post(url, data=data, headers=headers)
 
 
@@ -18,7 +17,7 @@ def check_db_size():
     headers ={
         "Authorization": f"Bearer {token}"
     }    
-    data = requests.get("http://localhost:8000/api/stacks/get_all_stacks", headers=headers)
+    data = requests.get("https://deploy-box.kalebwbishop.com/api/stacks/get_all_stacks", headers=headers)
 
     storage_amounts_dict = {}
 
