@@ -6,6 +6,8 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+HOST = os.environ.get("HOST")
+
 # SECURITY
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 DEBUG = os.environ.get("ENV", "dev") == "dev"
@@ -66,7 +68,7 @@ OAUTH2_PROVIDER = {
 OAUTH2_FRONTEND_SETTINGS = {
     "client_id": os.environ.get("OAUTH2_FRONTEND_CLIENT_ID"),
     "client_secret": os.environ.get("OAUTH2_FRONTEND_CLIENT_SECRET"),
-    "redirect_uri": os.environ.get("OAUTH2_REDIRECT_URI"),
+    "redirect_uri": f"{HOST}/accounts/callback/",
 }
 
 # Sessions & Security
@@ -170,7 +172,7 @@ GITHUB = {
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [os.path.join(BASE_DIR, "templates")],
+        "DIRS": ["templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -182,3 +184,25 @@ TEMPLATES = [
         },
     },
 ]
+
+# Password validation
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
+]
+
+# Internationalization
+LANGUAGE_CODE = "en-us"
+TIME_ZONE = "UTC"
+USE_I18N = True
+USE_TZ = True
