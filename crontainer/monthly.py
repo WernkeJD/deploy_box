@@ -70,7 +70,7 @@ def charge_customer():
 
     token_url = 'https://deploy-box.onrender.com/accounts/o/token/'
 
-    token = exchange_client_credentials_for_token(os.environ.get("client_id"), os.environ.get("client_secret"), token_url)
+    token = exchange_client_credentials_for_token(os.environ.get("CLIENT_ID"), os.environ.get("CLIENT_SECRET"), token_url)
     token = token.get("access_token")
 
     headers ={
