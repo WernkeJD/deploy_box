@@ -205,10 +205,26 @@ def create_github_webhook(request):
             timeout=5
         )
         webhook_response.raise_for_status()
+
+        # Store webhook details in the database
+        webhook_data = webhook_response.json()
+        if webhook_response.status_code == 201:
+            # Successfully created webhook, save to database
+            Webhooks.objects.create(
+                user=user,
+                repository=f"{github_username}/{repo_name}",
+                webhook_id=webhook_data.get("id"),
+                stack=stack,
+                secret=webhook_secret
+            )
+        else:
+            # Handle unexpected response
+            return JsonResponse({"error": "Failed to create webhook"}, status=400)
     except requests.RequestException as e:
         return JsonResponse({"error": f"Failed to create webhook: {str(e)}"}, status=400)
 
     return JsonResponse({"message": "Webhook created successfully", "webhook_secret": webhook_secret}, status=201)
+
 
 def delete_github_webhook(request):
     """Delete a GitHub webhook for a user's repository"""
@@ -259,7 +275,7 @@ from google.cloud.devtools import cloudbuild_v1
 from google.oauth2 import service_account
 
 
-def sample_submit_and_approve_build(stack_id, github_repo, github_token, layer:str):
+def sample_submit_and_approve_build(stack_id, github_repo, github_token, layer:str, port=80):
     try:
         # Create a client with credentials
         credentials = service_account.Credentials.from_service_account_file(settings.GCP.get("KEY_PATH"))
@@ -306,7 +322,8 @@ def sample_submit_and_approve_build(stack_id, github_repo, github_token, layer:s
                         --image={image_name} \
                         --region=us-central1 \
                         --platform=managed \
-                        --allow-unauthenticated
+                        --allow-unauthenticated \
+                        --set-env-vars=PORT={port}
                 """,
                 ],
             ),
@@ -365,8 +382,20 @@ def github_webhook(request):
     signature = request.headers.get("X-Hub-Signature-256")
     body = request.body
 
+    webhook_id = request.headers.get("X-GitHub-Hook-ID")
+    if not webhook_id:
+        # If webhook ID is not present in headers, return 400
+        return JsonResponse({"error": "Missing webhook ID"}, status=400)
+    
+    webhook = Webhooks.objects.filter(webhook_id=webhook_id).first()
+    if not webhook:
+        # If no webhook found for the given ID, return 404
+        return JsonResponse({"error": "Webhook not found"}, status=404)
+    
+    secret = webhook.secret
+
     computed_signature = (
-        "sha256=" + hmac.new(GITHUB_SECRET.encode(), body, hashlib.sha256).hexdigest()
+        "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
     )
     if not hmac.compare_digest(signature, computed_signature):
         return JsonResponse({"error": "Invalid signature"}, status=403)
@@ -374,7 +403,6 @@ def github_webhook(request):
     # Parse webhook payload
     payload = json.loads(body)
     event_type = request.headers.get("X-GitHub-Event")
-    webhook_id = request.headers.get("X-GitHub-Hook-ID")
     repository = payload.get("repository", {}).get("full_name", "unknown/repo")
 
     # Ignore events that aren't in the allowed list
@@ -403,7 +431,7 @@ def github_webhook(request):
 
         threading.Thread(
             target=sample_submit_and_approve_build,
-            args=(webhook.stack.id, webhook.repository, github_token, "Website"),
+            args=(webhook.stack.id, webhook.repository, github_token, "Website", 8000),
         ).start()
 
     elif repository == "HamzaKhairy/green_toolkit":
@@ -424,12 +452,12 @@ def github_webhook(request):
 
         threading.Thread(
             target=sample_submit_and_approve_build,
-            args=(webhook.stack.id, webhook.repository, github_token, "backend"),
+            args=(webhook.stack.id, webhook.repository, github_token, "backend", 8080),
         ).start()
 
         threading.Thread(
             target=sample_submit_and_approve_build,
-            args=(webhook.stack.id, webhook.repository, github_token, "frontend"),
+            args=(webhook.stack.id, webhook.repository, github_token, "frontend", 8080),
         ).start()
 
 
