@@ -7,7 +7,7 @@ def send_data(data, token):
         "Authorization": f"Bearer {token}",
         'Content-Type': 'application/json'
     }  
-    url = "https://deploy-box.kalebwbishop.com/api/stacks/update_database_usage"
+    url = "https://deploy-box.onrender.com/api/stacks/update_database_usage"
     requests.post(url, data=data, headers=headers)
 
 
@@ -17,7 +17,7 @@ def check_db_size():
     headers ={
         "Authorization": f"Bearer {token}"
     }    
-    data = requests.get("https://deploy-box.kalebwbishop.com/api/stacks/get_all_stacks", headers=headers)
+    data = requests.get("https://deploy-box.onrender.com/api/stacks/get_all_stacks", headers=headers)
 
     storage_amounts_dict = {}
 
