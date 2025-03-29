@@ -16,6 +16,7 @@ import stripe
 from accounts.decorators.oauth_required import oauth_required
 from django.shortcuts import render
 from api.services.stack_services import deploy_stack
+from django.db.models import F
 
 stripe.api_key = settings.STRIPE.get("SECRET_KEY")
 stripe.publishable_key = settings.STRIPE.get("PUBLISHABLE_KEY")
@@ -324,7 +325,9 @@ def update_invoice_billing(request):
     if request.method == "POST":
         data = json.loads(request.body)
         stack_id = data.get("stack_id")
+        cost = data.get("cost")
         updated_count = StackDatabases.objects.filter(stack_id=stack_id).update(current_usage=0)
+        billing = StackDatabases.objects.filter(stack_id=stack_id).update(pending_billed=F("pending_billed")+cost)
 
         # Check if any rows were updated
         if updated_count > 0:

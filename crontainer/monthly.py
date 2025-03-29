@@ -27,14 +27,14 @@ def get_customer_id(user_id, token):
     return requests.post(url, user_id,headers=headers)
 
 
-def update_invoice_billing(stack_id, token):
+def update_invoice_billing(stack_id, cost, token):
     headers ={
         "Authorization": f"Bearer {token}",
         'Content-Type': 'application/json'
     }  
     url = "http://localhost:8000/payments/update_invoice_billing"
 
-    data = {"stack_id": stack_id}
+    data = {"stack_id": stack_id, "cost": cost}
     data = json.dumps(data)
 
     response = requests.post(url, data=data, headers=headers)
@@ -54,7 +54,7 @@ def charge_customer():
 
     for stack_id, values in data.json().get('stacks').items():
         user_id, usage = values
-        cost = int(round(((usage/1_000_000) * 0.01)*100, 0))
+        cost = int(round(((usage/1_000_000) * 0.01)*100, 0)) if int(round(((usage/1_000_000) * 0.01)*100, 0)) >= 50 else 50
         customer_id = get_customer_id(user_id=user_id, token=token)
         customer_id = customer_id.json().get("customer_id")
 
@@ -64,12 +64,12 @@ def charge_customer():
 
         invoice(data, token)
 
-        response = update_invoice_billing(stack_id, token)
+        response = update_invoice_billing(stack_id, cost, token)
 
-        if response.status_code == 200:
-            return response.json() 
-        else:
-            return {"error": f"Failed to create invoice for user {user_id} stack {stack_id}. Status code: {response.status_code}"}
+        # if response.status_code == 200:
+        #     return response.json() 
+        # else:
+        #     return {"error": f"Failed to create invoice for user {user_id} stack {stack_id}. Status code: {response.status_code}"}
 
 
 
