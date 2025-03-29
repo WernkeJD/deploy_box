@@ -1,13 +1,36 @@
 import requests
 import json
 from pymongo import MongoClient
+import os
+
+import requests
+
+def exchange_client_credentials_for_token(client_id, client_secret, token_url):
+    """Exchanges client credentials for an access token."""
+    data = {
+        "grant_type": "client_credentials",
+        "client_id": client_id,
+        "client_secret": client_secret,
+    }
+
+    try:
+        response = requests.post(token_url, data=data)
+
+        if response.status_code != 200:
+            print(f"Error obtaining client credentials token: {response.text}")
+            return None
+
+        return response.json()  # Contains the access token
+    except Exception as e:
+        print(f"Error during client credentials token exchange: {str(e)}")
+        return None
 
 def invoice(data, token):
     headers ={
         "Authorization": f"Bearer {token}",
         'Content-Type': 'application/json'
     }  
-    url = "http://localhost:8000/payments/create-invoice"
+    url = "https://deploy-box.onrender.com/payments/create-invoice"
 
     response = requests.post(url, data=data, headers=headers)
     print(response.json())
@@ -19,7 +42,7 @@ def get_customer_id(user_id, token):
         "Authorization": f"Bearer {token}",
         'Content-Type': 'application/json'
     }  
-    url = "http://localhost:8000/payments/get_customer_id"
+    url = "https://deploy-box.onrender.com/payments/get_customer_id"
 
     user_id = {"user_id": user_id}
     user_id = json.dumps(user_id)
@@ -32,7 +55,7 @@ def update_invoice_billing(stack_id, cost, token):
         "Authorization": f"Bearer {token}",
         'Content-Type': 'application/json'
     }  
-    url = "http://localhost:8000/payments/update_invoice_billing"
+    url = "https://deploy-box.onrender.com/payments/update_invoice_billing"
 
     data = {"stack_id": stack_id, "cost": cost}
     data = json.dumps(data)
@@ -45,11 +68,15 @@ def update_invoice_billing(stack_id, cost, token):
 
 def charge_customer():
 
-    token = "eIyfndEvSxqG21GGMWVHblgepbl2sg"
+    token_url = 'https://deploy-box.onrender.com/accounts/o/token/'
+
+    token = exchange_client_credentials_for_token(os.environ.get("client_id"), os.environ.get("client_secret"), token_url)
+    token = token.get("access_token")
+
     headers ={
         "Authorization": f"Bearer {token}"
     }    
-    data = requests.get("http://localhost:8000/api/stacks/get_stack_usage_from_db", headers=headers)
+    data = requests.get("https://deploy-box.onrender.com/api/stacks/get_stack_usage_from_db", headers=headers)
     print("data: ", data.json())
 
     for stack_id, values in data.json().get('stacks').items():

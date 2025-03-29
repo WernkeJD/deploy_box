@@ -2,22 +2,46 @@ import requests
 import json
 from pymongo import MongoClient
 
+def exchange_client_credentials_for_token(client_id, client_secret, token_url):
+    """Exchanges client credentials for an access token."""
+    data = {
+        "grant_type": "client_credentials",
+        "client_id": client_id,
+        "client_secret": client_secret,
+    }
+
+    try:
+        response = requests.post(token_url, data=data)
+
+        if response.status_code != 200:
+            print(f"Error obtaining client credentials token: {response.text}")
+            return None
+
+        return response.json()  # Contains the access token
+    except Exception as e:
+        print(f"Error during client credentials token exchange: {str(e)}")
+        return None
+
 def send_data(data, token):
     headers ={
         "Authorization": f"Bearer {token}",
         'Content-Type': 'application/json'
     }  
-    url = "http://localhost:8000/api/stacks/update_database_usage"
+    url = "https://deploy-box.onrender.com/api/stacks/update_database_usage"
     requests.post(url, data=data, headers=headers)
 
 
 def check_db_size():
 
-    token = "eIyfndEvSxqG21GGMWVHblgepbl2sg"
+    token_url = 'https://deploy-box.onrender.com/accounts/o/token/'
+
+    token = exchange_client_credentials_for_token(os.environ.get("client_id"), os.environ.get("client_secret"), token_url)
+    token = token.get("access_token")
+
     headers ={
         "Authorization": f"Bearer {token}"
     }    
-    data = requests.get("http://localhost:8000/api/stacks/get_all_stacks", headers=headers)
+    data = requests.get("https://deploy-box.onrender.com/api/stacks/get_all_stacks", headers=headers)
 
     storage_amounts_dict = {}
 

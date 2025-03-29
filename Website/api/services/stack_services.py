@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework import status
+from accounts.decorators.oauth_required import oauth_required
 from api.serializers.stacks_serializer import StacksSerializer, StackDatabasesSerializer
 import requests
 from django.http import FileResponse
@@ -208,6 +209,8 @@ def update_database_storage_billing(request: Request):
 
     return Response({"data": data}, status=status.HTTP_200_OK)
 
+
+@oauth_required
 def get_database_current_use_from_db(request: Request):
     stacks = StackDatabases.objects.all()
     stacks = StackDatabasesSerializer(stacks, many=True).data
