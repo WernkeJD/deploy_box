@@ -381,8 +381,20 @@ def github_webhook(request):
     signature = request.headers.get("X-Hub-Signature-256")
     body = request.body
 
+    webhook_id = request.headers.get("X-GitHub-Hook-ID")
+    if not webhook_id:
+        # If webhook ID is not present in headers, return 400
+        return JsonResponse({"error": "Missing webhook ID"}, status=400)
+    
+    webhook = Webhooks.objects.filter(webhook_id=webhook_id).first()
+    if not webhook:
+        # If no webhook found for the given ID, return 404
+        return JsonResponse({"error": "Webhook not found"}, status=404)
+    
+    secret = webhook.secret
+
     computed_signature = (
-        "sha256=" + hmac.new(GITHUB_SECRET.encode(), body, hashlib.sha256).hexdigest()
+        "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
     )
     if not hmac.compare_digest(signature, computed_signature):
         return JsonResponse({"error": "Invalid signature"}, status=403)
@@ -390,7 +402,6 @@ def github_webhook(request):
     # Parse webhook payload
     payload = json.loads(body)
     event_type = request.headers.get("X-GitHub-Event")
-    webhook_id = request.headers.get("X-GitHub-Hook-ID")
     repository = payload.get("repository", {}).get("full_name", "unknown/repo")
 
     # Ignore events that aren't in the allowed list
