@@ -11,6 +11,8 @@ def invoice(data, token):
 
     response = requests.post(url, data=data, headers=headers)
     print(response.json())
+
+    return response
     
 def get_customer_id(user_id, token):
     headers ={
@@ -23,6 +25,23 @@ def get_customer_id(user_id, token):
     user_id = json.dumps(user_id)
 
     return requests.post(url, user_id,headers=headers)
+
+
+def update_invoice_billing(stack_id, token):
+    headers ={
+        "Authorization": f"Bearer {token}",
+        'Content-Type': 'application/json'
+    }  
+    url = "http://localhost:8000/payments/update_invoice_billing"
+
+    data = {"stack_id": stack_id}
+    data = json.dumps(data)
+
+    response = requests.post(url, data=data, headers=headers)
+
+    return response
+
+
 
 
 
@@ -38,7 +57,7 @@ def charge_customer():
 
     for stack_id, values in data.json().get('stacks').items():
         user_id, usage = values
-        cost = int(round(((usage/1_000_000) * 10)*100, 0))
+        cost = int(round(((usage/1_000_000) * 0.01)*100, 0))
         customer_id = get_customer_id(user_id=user_id, token=token)
         customer_id = customer_id.json().get("customer_id")
 
@@ -47,6 +66,14 @@ def charge_customer():
         data = json.dumps(data)
 
         invoice(data, token)
+
+        response = update_invoice_billing(stack_id, token)
+
+        if response.status_code == 200:
+            return response.json() 
+        else:
+            return {"error": f"Failed to create invoice for user {user_id} stack {stack_id}. Status code: {response.status_code}"}
+
 
 
 if __name__ == '__main__':

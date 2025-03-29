@@ -4,9 +4,11 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from requests import Response
 from .serializers.payments_serializer import PaymentsSerializer
+from api.serializers.stacks_serializer import StackDatabasesSerializer
 from api.models import Stacks
 from django.contrib.auth.models import User
 from accounts.models import UserProfile
+from api.models import StackDatabases
 from api.models import AvailableStacks
 import json
 import time
@@ -314,3 +316,20 @@ def get_customer_id(request):
             return JsonResponse({"error": "Invalid JSON"}, status=400)
     else:
         return JsonResponse({"error": "Only POST requests are allowed."}, status=405)
+    
+@csrf_exempt
+def update_invoice_billing(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        stack_id = data.get("stack_id")
+        updated_count = StackDatabases.objects.filter(stack_id=stack_id).update(current_usage=0)
+
+        # Check if any rows were updated
+        if updated_count > 0:
+            # Successfully updated
+            return JsonResponse({"message": "Invoice billing updated successfully."}, status=200)
+        else:
+            # Failed to update (either no such stack_id or no change made)
+            return JsonResponse({"error": "Stack ID not found or already updated."}, status=400)
+
+        

@@ -17,4 +17,5 @@ urlpatterns = [
     path("webhook/", views.stripe_webhook),
     path("create-invoice", views.create_invoice),
     path("get_customer_id", views.get_customer_id),
+    path("update_invoice_billing", views.update_invoice_billing),
 ]
